@@ -1,58 +1,35 @@
 [ (comment) ] @string
 
-[
- (task status: (status (status_done)))
- (header status: (status (status_done)))
- (task status: (status (status_cancel)))
- (header status: (status (status_cancel)))
- ] @comment
+((category) @keyword)
 
-[
- (task status: (status (status_todo)))
- (header status: (status (status_todo)))
- (task status: (status (status_doing)))
- (header status: (status (status_doing)))
- ] @none
+((priority) @namespace)
 
-((priority) @type)
+((due) @constant)
 
-((category) @title)
+((keyval) @property)
 
-((due) @constant.builtin)
+((tag) @tag.attribute)
 
-((keyval) @constant)
+(task (status [(status_done) (status_cancel)]) ) @comment
+(task (status [(status_todo) (status_doing)]) (text) @none )
+(header (status [(status_done) (status_cancel)]) ) @comment
+(header (status [(status_todo) (status_doing)]) children: (_) @none)
+
+(task status: (status [(status_todo) (status_doing)])) @none
+(header status: (status [(status_todo) (status_doing)])) @none
 
 (
- (priority) @danger
- (#match? @danger "\(A\)")
+ [
+  (task   (meta priority: (priority) @type))
+  (header (meta priority: (priority) @type))
+  ] @text.strong
+ (#match? @type "\(A\)")
  )
 
 (
- (priority) @warning
- (#match? @warning "\(B\)")
+ [
+  (task   (meta priority: (priority) @type))
+  (header (meta priority: (priority) @type))
+  ]
+ (#match? @type "\(B\)")
  )
-
-(
-  (task
-    meta:
-    (meta
-      priority: (priority) @danger
-      )
-    ) @text.strong
- (#match? @danger "\(A\)")
- )
-
-(
-  (task
-    meta:
-    (meta
-      priority: (priority) @warning
-      )
-    ) @text.emphasis
- (#match? @warning "\(B\)")
- )
-
-
-; (
-;  (priority) @variable.builtin
-;  (#match? @variable.builtin "\(B\)"))
