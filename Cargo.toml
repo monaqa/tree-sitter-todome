@@ -19,7 +19,14 @@ include = [
 [lib]
 path = "bindings/rust/lib.rs"
 
+[[bin]]
+name = "tree-sitter-todome"
+path = "bindings/rust/main.rs"
+
 [dependencies]
+anyhow = "1.0.43"
+chrono = "0.4.19"
+structopt = "0.3.22"
 tree-sitter = "~0.20.0"
 
 [build-dependencies]

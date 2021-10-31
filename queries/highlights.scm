@@ -34,14 +34,20 @@
 
 (
   (task
-    priority: (priority) @danger
+    meta:
+    (meta
+      priority: (priority) @danger
+      )
     ) @text.strong
  (#match? @danger "\(A\)")
  )
 
 (
   (task
-    priority: (priority) @warning
+    meta:
+    (meta
+      priority: (priority) @warning
+      )
     ) @text.emphasis
  (#match? @warning "\(B\)")
  )

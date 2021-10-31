@@ -5,9 +5,9 @@ hello2
 		# 適当
 		(A) [foo bar] {2021-12-21} [piyo]
 		* (B) [foo bar] {done:2021-12-21} hello
-		* (C) [foo bar] {done:2021-12-21} hello
-[category]
-	foo
+		(C) {done:2021-12-21} hello
+	[category]
+		foo
 
 - (A) [hey]
 	foo
