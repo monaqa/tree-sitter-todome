@@ -385,8 +385,78 @@
       "value": "[^#\\[\\]\\t\\r\\n]+"
     },
     "text": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_text_start"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "tag"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_text_subsequent"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "REPEAT1",
+              "content": {
+                "type": "SYMBOL",
+                "name": "tag"
+              }
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_text_subsequent"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "tag"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_text_subsequent"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "tag": {
       "type": "PATTERN",
-      "value": "[^# +*-/({\\[\\t\\n][^#\\n]*"
+      "value": "@[a-zA-Z0-9][a-zA-Z0-9_]*"
+    },
+    "_text_start": {
+      "type": "PATTERN",
+      "value": "[^# +*-/=@({\\[\\t\\n][^#@\\n]*"
+    },
+    "_text_subsequent": {
+      "type": "PATTERN",
+      "value": "[^#@\\n]+"
     },
     "comment": {
       "type": "TOKEN",

@@ -255,6 +255,21 @@
     }
   },
   {
+    "type": "text",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tag",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "(",
     "named": false
   },
@@ -307,7 +322,7 @@
     "named": true
   },
   {
-    "type": "text",
+    "type": "tag",
     "named": true
   },
   {

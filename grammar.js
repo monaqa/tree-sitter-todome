@@ -66,7 +66,14 @@ module.exports = grammar({
         category: $ => seq('[', $.category_name, ']'),
         category_name: _ => /[^#\[\]\t\r\n]+/,
 
-        text: _ => /[^# +*-/({\[\t\n][^#\n]*/,
+        // text: _ => /[^# +*-/({\[\t\n][^#\n]*/,
+        text: $ => choice(
+            seq($._text_start, repeat(choice($.tag, $._text_subsequent))),
+            seq(repeat1($.tag), $._text_subsequent, repeat(choice($.tag, $._text_subsequent)))
+        ),
+        tag: _ => /@[a-zA-Z0-9][a-zA-Z0-9_-]*/,
+        _text_start: _ => /[^# +*-/=@({\[\t\n][^#@\n]*/,
+        _text_subsequent: _ => /[^#@\n]+/,
 
         comment: _ => token(seq('#', /.*/)),
     }
