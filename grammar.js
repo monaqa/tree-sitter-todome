@@ -57,7 +57,7 @@ module.exports = grammar({
 
         priority: _ => seq('(', /[A-Z]/, ')'),
 
-        due: $ => seq('{', field('value', $.date_value), '}'),
+        due: $ => seq('(', field('value', $.date_value), ')'),
         date_value: _ => /\d{4}-\d{2}-\d{2}/,
         keyval: $ => seq('{', field('key', $.key), ":", field('value', $.value), '}'),
         key: _ => /[a-zA-Z][a-zA-Z0-9_-]*/,
