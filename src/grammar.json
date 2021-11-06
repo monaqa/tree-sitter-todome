@@ -261,6 +261,10 @@
         {
           "type": "SYMBOL",
           "name": "status_cancel"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "status_other"
         }
       ]
     },
@@ -277,6 +281,10 @@
       "value": "-"
     },
     "status_cancel": {
+      "type": "STRING",
+      "value": "="
+    },
+    "status_other": {
       "type": "STRING",
       "value": "/"
     },
@@ -448,7 +456,7 @@
     },
     "tag": {
       "type": "PATTERN",
-      "value": "@[a-zA-Z0-9][a-zA-Z0-9_]*"
+      "value": "@[a-zA-Z0-9][a-zA-Z0-9_-]*"
     },
     "_text_start": {
       "type": "PATTERN",

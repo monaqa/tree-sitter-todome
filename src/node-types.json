@@ -202,6 +202,10 @@
           "named": true
         },
         {
+          "type": "status_other",
+          "named": true
+        },
+        {
           "type": "status_todo",
           "named": true
         }
@@ -315,6 +319,10 @@
   },
   {
     "type": "status_done",
+    "named": true
+  },
+  {
+    "type": "status_other",
     "named": true
   },
   {

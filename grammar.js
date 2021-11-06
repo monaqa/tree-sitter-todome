@@ -49,11 +49,13 @@ module.exports = grammar({
             $.status_doing,
             $.status_done,
             $.status_cancel,
+            $.status_other,
         ),
         status_todo: _ => '+',
         status_doing: _ => '*',
         status_done: _ => '-',
-        status_cancel: _ => '/',
+        status_cancel: _ => '=',
+        status_other: _ => '/',
 
         priority: _ => seq('(', /[A-Z]/, ')'),
 
