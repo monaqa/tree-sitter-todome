@@ -8,6 +8,10 @@ use structopt::StructOpt;
 #[derive(Debug, Clone, StructOpt)]
 struct Opts {
     input: PathBuf,
+    #[structopt(short = "a", long)]
+    display_annonymous: bool,
+    #[structopt(short = "e", long)]
+    display_extra: bool,
 }
 
 fn main() -> Result<()> {
@@ -38,7 +42,10 @@ fn main() -> Result<()> {
 
     let cst = Cst::from_cursor(&mut cursor, &text);
 
-    println!("{}", cst);
+    println!(
+        "{}",
+        cst.display(opts.display_annonymous, opts.display_extra)
+    );
 
     Ok(())
 }
@@ -103,8 +110,11 @@ impl Cst {
         }
     }
 
-    fn stringify(&self, indent: usize) -> String {
-        if !self.named {
+    fn stringify(&self, display_annonymous: bool, display_extra: bool, indent: usize) -> String {
+        if !display_annonymous && !self.named {
+            return "".to_owned();
+        }
+        if !display_extra && self.extra {
             return "".to_owned();
         }
         let mut s = String::new();
@@ -117,8 +127,10 @@ impl Cst {
             s.push_str(&format!("[!{}!]", self.kind,));
         } else if self.missing {
             s.push_str(&format!("[?{}?]", self.kind,));
+        } else if !self.named {
+            s.push_str(&format!(r#"('{}')"#, self.kind,));
         } else if self.extra {
-            s.push_str(&format!("[%{}%]", self.kind,));
+            s.push_str(&format!("(%{}%)", self.kind,));
         } else {
             s.push_str(&format!("[{}]", self.kind,));
         }
@@ -135,15 +147,35 @@ impl Cst {
         }
         s.push('\n');
         for child in &self.children {
-            let text = child.stringify(indent + 1);
+            let text = child.stringify(display_annonymous, display_extra, indent + 1);
             s.push_str(&text);
         }
         s
     }
 }
 
-impl Display for Cst {
+struct CstDisplay<'a> {
+    cst: &'a Cst,
+    display_annonymous: bool,
+    display_extra: bool,
+}
+
+impl Cst {
+    fn display(&self, display_annonymous: bool, display_extra: bool) -> CstDisplay<'_> {
+        CstDisplay {
+            cst: self,
+            display_annonymous,
+            display_extra,
+        }
+    }
+}
+impl<'a> Display for CstDisplay<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.stringify(0))
+        write!(
+            f,
+            "{}",
+            self.cst
+                .stringify(self.display_annonymous, self.display_extra, 0)
+        )
     }
 }
