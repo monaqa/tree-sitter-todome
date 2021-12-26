@@ -268,26 +268,6 @@
         }
       ]
     },
-    "status_todo": {
-      "type": "STRING",
-      "value": "+"
-    },
-    "status_doing": {
-      "type": "STRING",
-      "value": "*"
-    },
-    "status_done": {
-      "type": "STRING",
-      "value": "-"
-    },
-    "status_cancel": {
-      "type": "STRING",
-      "value": "="
-    },
-    "status_other": {
-      "type": "STRING",
-      "value": "/"
-    },
     "priority": {
       "type": "SEQ",
       "members": [
@@ -296,8 +276,12 @@
           "value": "("
         },
         {
-          "type": "PATTERN",
-          "value": "[A-Z]"
+          "type": "FIELD",
+          "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "priority_inner"
+          }
         },
         {
           "type": "STRING",
@@ -325,10 +309,6 @@
           "value": ")"
         }
       ]
-    },
-    "date_value": {
-      "type": "PATTERN",
-      "value": "\\d{4}-\\d{2}-\\d{2}"
     },
     "keyval": {
       "type": "SEQ",
@@ -363,14 +343,6 @@
         }
       ]
     },
-    "key": {
-      "type": "PATTERN",
-      "value": "[a-zA-Z][a-zA-Z0-9_-]*"
-    },
-    "value": {
-      "type": "PATTERN",
-      "value": "[^#\\(\\)\\[\\]\\{\\}\\t\\r\\n]*"
-    },
     "category": {
       "type": "SEQ",
       "members": [
@@ -387,10 +359,6 @@
           "value": "]"
         }
       ]
-    },
-    "category_name": {
-      "type": "PATTERN",
-      "value": "[^#\\[\\]\\t\\r\\n]+"
     },
     "text": {
       "type": "CHOICE",
@@ -454,17 +422,49 @@
         }
       ]
     },
+    "status_todo": {
+      "type": "STRING",
+      "value": "+"
+    },
+    "status_doing": {
+      "type": "STRING",
+      "value": "*"
+    },
+    "status_done": {
+      "type": "STRING",
+      "value": "-"
+    },
+    "status_cancel": {
+      "type": "STRING",
+      "value": "="
+    },
+    "status_other": {
+      "type": "STRING",
+      "value": "/"
+    },
     "tag": {
       "type": "PATTERN",
       "value": "@[a-zA-Z0-9][a-zA-Z0-9_-]*"
     },
-    "_text_start": {
+    "date_value": {
       "type": "PATTERN",
-      "value": "[^# +*-/=@({\\[\\t\\n][^#@\\n]*"
+      "value": "\\d{4}-\\d{2}-\\d{2}"
     },
-    "_text_subsequent": {
+    "key": {
       "type": "PATTERN",
-      "value": "[^#@\\n]+"
+      "value": "[a-zA-Z][a-zA-Z0-9_-]*"
+    },
+    "value": {
+      "type": "PATTERN",
+      "value": "[^#\\(\\)\\[\\]\\{\\}\\t\\r\\n]*"
+    },
+    "priority_inner": {
+      "type": "PATTERN",
+      "value": "[A-Z]"
+    },
+    "category_name": {
+      "type": "PATTERN",
+      "value": "[^#\\[\\]\\t\\r\\n]+"
     },
     "comment": {
       "type": "TOKEN",
@@ -481,6 +481,28 @@
           }
         ]
       }
+    },
+    "whitespace": {
+      "type": "PATTERN",
+      "value": "(\\s|\\\\\\r?\\n)+"
+    },
+    "_text_start": {
+      "type": "ALIAS",
+      "content": {
+        "type": "PATTERN",
+        "value": "[^# +*-/=@({\\[\\t\\n][^#@\\n]*"
+      },
+      "named": false,
+      "value": "subtext"
+    },
+    "_text_subsequent": {
+      "type": "ALIAS",
+      "content": {
+        "type": "PATTERN",
+        "value": "[^#@\\n]+"
+      },
+      "named": false,
+      "value": "subtext"
     }
   },
   "extras": [
@@ -489,8 +511,8 @@
       "name": "comment"
     },
     {
-      "type": "PATTERN",
-      "value": "\\s|\\\\\\r?\\n"
+      "type": "SYMBOL",
+      "name": "whitespace"
     }
   ],
   "conflicts": [

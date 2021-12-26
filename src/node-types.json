@@ -160,7 +160,18 @@
   {
     "type": "priority",
     "named": true,
-    "fields": {}
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "priority_inner",
+            "named": true
+          }
+        ]
+      }
+    }
   },
   {
     "type": "source_file",
@@ -310,6 +321,10 @@
     "named": true
   },
   {
+    "type": "priority_inner",
+    "named": true
+  },
+  {
     "type": "status_cancel",
     "named": true
   },
@@ -330,11 +345,19 @@
     "named": true
   },
   {
+    "type": "subtext",
+    "named": false
+  },
+  {
     "type": "tag",
     "named": true
   },
   {
     "type": "value",
+    "named": true
+  },
+  {
+    "type": "whitespace",
     "named": true
   },
   {
