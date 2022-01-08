@@ -1,9 +1,14 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf, slice::SliceIndex};
 
 use anyhow::*;
+use itertools::Itertools;
 use tree_sitter::{Parser, TreeCursor};
 
 use structopt::StructOpt;
+use tree_sitter_todome::syntax::{
+    ast::{AstNode, SourceFile},
+    green::GreenNode,
+};
 
 #[derive(Debug, Clone, StructOpt)]
 struct Opts {
@@ -22,30 +27,39 @@ fn main() -> Result<()> {
     parser.set_language(language_todome)?;
 
     let text = std::fs::read_to_string(opts.input).context(anyhow!("The input file not found!"))?;
-    let tree = parser
-        .parse(&text, None)
-        .with_context(|| anyhow!("parse failed!"))?;
-    let node = tree.root_node();
-    let mut cursor = node.walk();
+    // let tree = parser
+    //     .parse(&text, None)
+    //     .with_context(|| anyhow!("parse failed!"))?;
+    // let node = tree.root_node();
+    // let mut cursor = node.walk();
 
-    // let query_sexp = std::fs::read_to_string("queries/highlights.scm")?;
-    // let query = Query::new(language_todome, &query_sexp)?;
-    // let cap_names = query.capture_names();
-    // let mut qmatch = QueryCursor::new();
-    // この第3引数の text_callback ってなに？？ predicate と関係ありそうだけど
-    // for m in qmatch.matches(&query, node, &[]) {
-    //     println!("{:?}", m);
-    //     for cap in m.captures {
-    //         println!("{}", cap_names[cap.index as usize]);
-    //     }
-    // }
+    // let cst = Cst::from_cursor(&mut cursor, &text);
 
-    let cst = Cst::from_cursor(&mut cursor, &text);
+    // println!(
+    //     "{}",
+    //     cst.display(opts.display_annonymous, opts.display_extra)
+    // );
 
-    println!(
-        "{}",
-        cst.display(opts.display_annonymous, opts.display_extra)
-    );
+    // let node = GreenNode::new_root(text)?;
+    // println!("{:#?}", node);
+    //
+    // let a = node
+    //     .as_node()
+    //     .unwrap()
+    //     .children()
+    //     .get(0)
+    //     .unwrap()
+    //     .as_node()
+    //     .unwrap()
+    //     .children()
+    //     .get(2)
+    //     .unwrap();
+    // println!("{}", a.text());
+    let source_file = SourceFile::parse(text)?;
+    let green_node = source_file.syntax().green();
+    // dbg!(&source_file);
+    let items = source_file.items().collect_vec();
+    dbg!(&items);
 
     Ok(())
 }

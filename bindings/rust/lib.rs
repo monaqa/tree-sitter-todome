@@ -15,6 +15,8 @@
 //! [Parser]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Parser.html
 //! [tree-sitter]: https://tree-sitter.github.io/
 
+pub mod syntax;
+
 use tree_sitter::Language;
 
 extern "C" {
