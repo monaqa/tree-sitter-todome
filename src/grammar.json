@@ -13,6 +13,10 @@
           {
             "type": "SYMBOL",
             "name": "header"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_comment_line"
           }
         ]
       }
@@ -102,6 +106,10 @@
               {
                 "type": "SYMBOL",
                 "name": "header"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_comment_line"
               }
             ]
           }
@@ -154,6 +162,18 @@
             "type": "SYMBOL",
             "name": "text"
           }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "comment"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -190,12 +210,42 @@
           ]
         },
         {
-          "type": "FIELD",
-          "name": "status",
-          "content": {
-            "type": "SYMBOL",
-            "name": "status"
-          }
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "status",
+              "content": {
+                "type": "SYMBOL",
+                "name": "status"
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "comment"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "_comment_line": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "comment"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_newline"
         }
       ]
     },
@@ -506,10 +556,6 @@
     }
   },
   "extras": [
-    {
-      "type": "SYMBOL",
-      "name": "comment"
-    },
     {
       "type": "SYMBOL",
       "name": "whitespace"

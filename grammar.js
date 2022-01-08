@@ -29,7 +29,6 @@ module.exports = grammar({
     ],
 
     extras: $ => [
-        $.comment,
         $.whitespace,
     ],
 
@@ -39,22 +38,36 @@ module.exports = grammar({
 
     rules: {
 
-        source_file: $ => repeat(choice($.task, $.header)),
+        source_file: $ => repeat(choice($.task, $.header, $._comment_line)),
 
         task: $ => seq($._task_line, choice(seq($._indent, field('children', $.block)), $._newline)),
 
         header: $ => seq($._header_line, choice(seq($._indent, field('children', $.block)), $._newline)),
 
         block: $ => seq(
-            repeat(choice($.task, $.header)),
+            repeat(choice($.task, $.header, $._comment_line)),
             $._dedent
         ),
 
-        _task_line: $ => seq(optional(field('status', $.status)), optional(field('meta', $.meta)), field('text', $.text)),
+        _task_line: $ => seq(
+            optional(field('status', $.status)),
+            optional(field('meta', $.meta)),
+            field('text', $.text),
+            optional($.comment),
+    ),
         _header_line: $ => choice(
-            seq(optional(field('status', $.status)), field('meta', $.meta)),
-            field('status', $.status),
+            seq(
+                optional(field('status', $.status)),
+                field('meta', $.meta),
+
+            ),
+            seq(
+                field('status', $.status),
+                optional($.comment),
+            ),
         ),
+
+        _comment_line: $ => seq($.comment, $._newline),
 
         meta: $ => repeat1($._meta),
 
