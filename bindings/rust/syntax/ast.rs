@@ -1,4 +1,6 @@
 use anyhow::*;
+use chrono::{Date, Local, NaiveDate};
+use itertools::Itertools;
 use std::sync::Arc;
 
 use super::{green::GreenNode, red::SyntaxNode};
@@ -46,10 +48,122 @@ register_ast_node!(Category, "categtory");
 register_ast_node!(Text, "text");
 register_ast_node!(Tag, "tag");
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum StatusKind {
+    Todo,
+    Doing,
+    Done,
+    Cancel,
+    Other,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     Task(Task),
     Header(Header),
+}
+
+impl Item {
+    pub fn as_task(&self) -> Option<&Task> {
+        if let Self::Task(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_header(&self) -> Option<&Header> {
+        if let Self::Header(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn parent_item(&self) -> Option<Item> {
+        let parent_item_node = self.syntax().parent()?.parent()?;
+        Item::cast(parent_item_node)
+    }
+
+    /// 自身に近いものから順に親をさかのぼって列挙する。
+    pub fn ancestors(&self) -> Vec<Item> {
+        let mut v = vec![];
+        let mut item = self.clone();
+        while let Some(parent) = item.parent_item() {
+            v.push(parent.clone());
+            item = parent;
+        }
+        v
+    }
+
+    pub fn meta(&self) -> Option<Meta> {
+        match self {
+            Item::Task(t) => t.meta(),
+            Item::Header(h) => h.meta(),
+        }
+    }
+
+    pub fn status(&self) -> Option<Status> {
+        match self {
+            Item::Task(t) => t.status(),
+            Item::Header(h) => h.status(),
+        }
+    }
+
+    /// 自身にかかる status を列挙する。
+    /// 最も後に出たものから順番に出力される。
+    /// したがって `.next()` で「現在有効な」 priority を取得できる。
+    pub fn scoped_statuses(&self) -> impl Iterator<Item = Status> + '_ {
+        Some(self.clone())
+            .into_iter()
+            .chain(self.ancestors())
+            .filter_map(|item| item.status())
+    }
+
+    /// 自身にかかる priorities を列挙する。
+    /// 最も後に出たものから順番に出力される。
+    /// したがって `.next()` で「現在有効な」 priority を取得できる。
+    pub fn scoped_proiorities(&self) -> impl Iterator<Item = Priority> + '_ {
+        Some(self.clone())
+            .into_iter()
+            .chain(self.ancestors())
+            .filter_map(|item| item.meta())
+            .flat_map(|meta| meta.priorities().collect_vec().into_iter().rev())
+    }
+
+    /// 自身にかかる dues を列挙する。
+    /// 最も後に出たものから順番に出力される。
+    /// したがって `.next()` で「現在有効な」 priority を取得できる。
+    pub fn scoped_dues(&self) -> impl Iterator<Item = Due> + '_ {
+        Some(self.clone())
+            .into_iter()
+            .chain(self.ancestors())
+            .filter_map(|item| item.meta())
+            .flat_map(|meta| meta.dues().collect_vec().into_iter().rev())
+    }
+
+    /// 自身にかかる keyvals を列挙する。
+    /// 最も後に出たものから順番に出力される。
+    /// したがって `.next()` で「現在有効な」 priority を取得できる。
+    pub fn scoped_keyvals(&self) -> impl Iterator<Item = Keyval> + '_ {
+        Some(self.clone())
+            .into_iter()
+            .chain(self.ancestors())
+            .filter_map(|item| item.meta())
+            .flat_map(|meta| meta.keyvals().collect_vec().into_iter().rev())
+    }
+
+    /// 自身にかかる categories を列挙する。
+    /// 最も後に出たものから順番に出力される。
+    /// したがって全ての category を正しい順番で得るには
+    /// `.reverse()` などで逆順にする必要がある。
+    pub fn scoped_categories(&self) -> impl Iterator<Item = Category> + '_ {
+        Some(self.clone())
+            .into_iter()
+            .chain(self.ancestors())
+            .filter_map(|item| item.meta())
+            .flat_map(|meta| meta.categories().collect_vec().into_iter().rev())
+    }
 }
 
 impl SourceFile {
@@ -85,6 +199,13 @@ impl SourceFile {
     pub fn items(&self) -> impl Iterator<Item = Item> + '_ {
         self.syntax.children().filter_map(Item::cast)
     }
+
+    pub fn items_nested(&self) -> impl Iterator<Item = Item> + '_ {
+        self.syntax
+            .children_recursive()
+            .into_iter()
+            .filter_map(Item::cast)
+    }
 }
 
 impl Block {
@@ -94,6 +215,14 @@ impl Block {
 }
 
 impl Task {
+    pub fn into_item(self) -> Item {
+        Item::Task(self)
+    }
+
+    pub fn status(&self) -> Option<Status> {
+        self.syntax.children().find_map(Status::cast)
+    }
+
     pub fn meta(&self) -> Option<Meta> {
         self.syntax.children().find_map(Meta::cast)
     }
@@ -108,6 +237,14 @@ impl Task {
 }
 
 impl Header {
+    pub fn into_item(self) -> Item {
+        Item::Header(self)
+    }
+
+    pub fn status(&self) -> Option<Status> {
+        self.syntax.children().find_map(Status::cast)
+    }
+
     pub fn meta(&self) -> Option<Meta> {
         self.syntax.children().find_map(Meta::cast)
     }
@@ -135,8 +272,56 @@ impl Meta {
     }
 }
 
+impl Status {
+    pub fn kind(&self) -> StatusKind {
+        match self.syntax().text().as_str() {
+            "+" => StatusKind::Todo,
+            "*" => StatusKind::Doing,
+            "-" => StatusKind::Done,
+            "=" => StatusKind::Cancel,
+            "/" => StatusKind::Other,
+            _ => unreachable!(),
+        }
+    }
+
+    /// 未着手、進行中のいずれかであるかどうか。
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self.kind(),
+            StatusKind::Todo | StatusKind::Doing | StatusKind::Other
+        )
+    }
+}
+
+impl Due {
+    pub fn try_as_date(&self) -> Option<NaiveDate> {
+        let date_str = self
+            .syntax()
+            .children()
+            .find(|n| n.green().kind().as_str() == "date_value")?
+            .text();
+        NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").ok()
+    }
+}
+
+impl Category {
+    pub fn name(&self) -> String {
+        self.syntax()
+            .children()
+            .find(|n| n.green().kind().as_str() == "category_name")
+            .unwrap()
+            .text()
+    }
+}
+
 impl Text {
     pub fn tags(&self) -> impl Iterator<Item = Tag> + '_ {
         self.syntax.children().filter_map(Tag::cast)
+    }
+}
+
+impl Tag {
+    pub fn name(&self) -> String {
+        self.syntax().text()[1..].to_string()
     }
 }
