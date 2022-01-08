@@ -16,7 +16,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_comment_line"
+            "name": "_memo_line"
           }
         ]
       }
@@ -109,7 +109,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_comment_line"
+                "name": "_memo_line"
               }
             ]
           }
@@ -168,7 +168,7 @@
           "members": [
             {
               "type": "SYMBOL",
-              "name": "comment"
+              "name": "memo"
             },
             {
               "type": "BLANK"
@@ -225,7 +225,7 @@
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "comment"
+                  "name": "memo"
                 },
                 {
                   "type": "BLANK"
@@ -236,12 +236,12 @@
         }
       ]
     },
-    "_comment_line": {
+    "_memo_line": {
       "type": "SEQ",
       "members": [
         {
           "type": "SYMBOL",
-          "name": "comment"
+          "name": "memo"
         },
         {
           "type": "SYMBOL",
@@ -516,7 +516,7 @@
       "type": "PATTERN",
       "value": "[^#\\[\\]\\t\\r\\n]+"
     },
-    "comment": {
+    "memo": {
       "type": "TOKEN",
       "content": {
         "type": "SEQ",

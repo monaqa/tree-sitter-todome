@@ -12,7 +12,7 @@ tokens = {
     priority_inner: _ => /[A-Z]/,
 
     category_name: _ => /[^#\[\]\t\r\n]+/,
-    comment: _ => token(seq('#', /.*/)),
+    memo: _ => token(seq('#', /.*/)),
     whitespace: _ => /(\s|\\\r?\n)+/,
 
     _text_start: _ => alias(/[^# +*-/=@({\[\t\n][^#@\n]*/, 'subtext'),
@@ -38,14 +38,14 @@ module.exports = grammar({
 
     rules: {
 
-        source_file: $ => repeat(choice($.task, $.header, $._comment_line)),
+        source_file: $ => repeat(choice($.task, $.header, $._memo_line)),
 
         task: $ => seq($._task_line, choice(seq($._indent, field('children', $.block)), $._newline)),
 
         header: $ => seq($._header_line, choice(seq($._indent, field('children', $.block)), $._newline)),
 
         block: $ => seq(
-            repeat(choice($.task, $.header, $._comment_line)),
+            repeat(choice($.task, $.header, $._memo_line)),
             $._dedent
         ),
 
@@ -53,7 +53,7 @@ module.exports = grammar({
             optional(field('status', $.status)),
             optional(field('meta', $.meta)),
             field('text', $.text),
-            optional($.comment),
+            optional($.memo),
     ),
         _header_line: $ => choice(
             seq(
@@ -63,11 +63,11 @@ module.exports = grammar({
             ),
             seq(
                 field('status', $.status),
-                optional($.comment),
+                optional($.memo),
             ),
         ),
 
-        _comment_line: $ => seq($.comment, $._newline),
+        _memo_line: $ => seq($.memo, $._newline),
 
         meta: $ => repeat1($._meta),
 
@@ -93,7 +93,6 @@ module.exports = grammar({
 
         category: $ => seq('[', $.category_name, ']'),
 
-        // text: _ => /[^# +*-/({\[\t\n][^#\n]*/,
         text: $ => choice(
             seq($._text_start, repeat(choice($.tag, $._text_subsequent))),
             seq(repeat1($.tag), $._text_subsequent, repeat(choice($.tag, $._text_subsequent)))

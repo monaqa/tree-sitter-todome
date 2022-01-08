@@ -8,11 +8,11 @@
       "required": false,
       "types": [
         {
-          "type": "comment",
+          "type": "header",
           "named": true
         },
         {
-          "type": "header",
+          "type": "memo",
           "named": true
         },
         {
@@ -93,7 +93,7 @@
       "required": false,
       "types": [
         {
-          "type": "comment",
+          "type": "memo",
           "named": true
         }
       ]
@@ -196,11 +196,11 @@
       "required": false,
       "types": [
         {
-          "type": "comment",
+          "type": "header",
           "named": true
         },
         {
-          "type": "header",
+          "type": "memo",
           "named": true
         },
         {
@@ -291,7 +291,7 @@
       "required": false,
       "types": [
         {
-          "type": "comment",
+          "type": "memo",
           "named": true
         }
       ]
@@ -337,15 +337,15 @@
     "named": true
   },
   {
-    "type": "comment",
-    "named": true
-  },
-  {
     "type": "date_value",
     "named": true
   },
   {
     "type": "key",
+    "named": true
+  },
+  {
+    "type": "memo",
     "named": true
   },
   {
