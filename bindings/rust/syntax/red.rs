@@ -1,14 +1,19 @@
-use std::{fmt::Display, hash::Hash, iter, sync::Arc};
+use std::{fmt::Display, hash::Hash, sync::Arc};
 
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 
 use super::green::GreenNode;
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode(Arc<SyntaxData>);
 
+#[derive(Clone)]
 pub struct SyntaxNodeDisplay<'a>(&'a SyntaxNode);
 
+#[derive(Clone)]
+pub struct SyntaxNodeDisplayRecursive<'a>(&'a SyntaxNode);
+
+#[derive(Clone)]
 pub struct SyntaxNodeDisplayShort<'a>(&'a SyntaxNode);
 
 impl std::ops::Deref for SyntaxNode {
@@ -89,7 +94,6 @@ impl SyntaxNode {
 
     /// その SyntaxNode の子要素のうち、その byte 目にある red node の列を取得する。
     pub fn dig(&self, index: usize) -> Vec<SyntaxNode> {
-        let a = self.dig_child(index).map(|n| n.dig(index));
         if let Some(n) = self.dig_child(index) {
             n.dig(index).into_iter().chain(Some(self.clone())).collect()
         } else {
@@ -137,6 +141,14 @@ impl<'a> std::ops::Deref for SyntaxNodeDisplay<'a> {
     }
 }
 
+impl<'a> std::ops::Deref for SyntaxNodeDisplayRecursive<'a> {
+    type Target = &'a SyntaxNode;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl<'a> std::ops::Deref for SyntaxNodeDisplayShort<'a> {
     type Target = &'a SyntaxNode;
 
@@ -176,12 +188,36 @@ impl<'a> Display for SyntaxNodeDisplay<'a> {
     }
 }
 
+impl<'a> SyntaxNodeDisplayRecursive<'a> {
+    fn print_aux(&self, indent: usize) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "{}{}\n",
+            " ".repeat(indent * 2),
+            self.display_short()
+        ));
+        for child in self.children() {
+            s.push_str(&child.display_recursive().print_aux(indent + 1));
+        }
+        s
+    }
+}
+
+impl<'a> Display for SyntaxNodeDisplayRecursive<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.print_aux(0))
+    }
+}
+
 impl SyntaxNode {
     pub fn display(&self) -> SyntaxNodeDisplay<'_> {
         SyntaxNodeDisplay(self)
     }
     pub fn display_short(&self) -> SyntaxNodeDisplayShort<'_> {
         SyntaxNodeDisplayShort(self)
+    }
+    pub fn display_recursive(&self) -> SyntaxNodeDisplayRecursive<'_> {
+        SyntaxNodeDisplayRecursive(self)
     }
 }
 
@@ -221,8 +257,10 @@ mod tests {
         assert_eq!(text.text_len(), 3);
         assert_eq!(text.text(), "foo".to_owned());
 
-        for n in root.dig(2) {
-            println!("{}", n.display());
-        }
+        // for n in root.dig(2) {
+        //     println!("{}", n.display());
+        // }
+
+        println!("{}", root.display_recursive());
     }
 }
