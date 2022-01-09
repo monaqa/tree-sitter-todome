@@ -44,9 +44,10 @@ register_ast_node!(Status, "status");
 register_ast_node!(Priority, "priority");
 register_ast_node!(Due, "due");
 register_ast_node!(Keyval, "keyval");
-register_ast_node!(Category, "categtory");
+register_ast_node!(Category, "category");
 register_ast_node!(Text, "text");
 register_ast_node!(Tag, "tag");
+register_ast_node!(Memo, "memo");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StatusKind {

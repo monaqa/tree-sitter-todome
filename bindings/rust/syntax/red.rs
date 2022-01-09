@@ -65,7 +65,10 @@ impl SyntaxNode {
     }
 
     pub fn children_recursive(&self) -> Vec<SyntaxNode> {
-        self.children().map(|c| c.children_recursive()).concat()
+        Some(self.clone())
+            .into_iter()
+            .chain(self.children().flat_map(|c| c.children_recursive()))
+            .collect()
     }
 
     pub fn text_len(&self) -> usize {
