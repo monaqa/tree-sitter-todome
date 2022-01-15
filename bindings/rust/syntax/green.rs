@@ -1,3 +1,5 @@
+//! Type definition for green node.
+//!
 //! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
 
 use anyhow::*;

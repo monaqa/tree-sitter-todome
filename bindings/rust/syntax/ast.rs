@@ -1,5 +1,9 @@
+//! Type definition for syntactic node.
+//!
+//! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
+
 use anyhow::*;
-use chrono::{Date, Local, NaiveDate};
+use chrono::NaiveDate;
 use itertools::Itertools;
 use std::sync::Arc;
 
@@ -15,6 +19,7 @@ pub trait AstNode {
 
 macro_rules! register_ast_node {
     ($struct_name:ident, $syntax_name:literal) => {
+        /// pub struct for $syntax_name
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $struct_name {
             syntax: SyntaxNode,
@@ -62,6 +67,7 @@ pub enum StatusKind {
 pub enum Item {
     Task(Task),
     Header(Header),
+    Memo(Memo),
 }
 
 impl Item {
@@ -101,6 +107,7 @@ impl Item {
         match self {
             Item::Task(t) => t.meta(),
             Item::Header(h) => h.meta(),
+            Item::Memo(_) => None,
         }
     }
 
@@ -108,6 +115,7 @@ impl Item {
         match self {
             Item::Task(t) => t.status(),
             Item::Header(h) => h.status(),
+            Item::Memo(_) => None,
         }
     }
 
@@ -192,6 +200,7 @@ impl AstNode for Item {
         match self {
             Item::Task(Task { syntax }) => syntax,
             Item::Header(Header { syntax }) => syntax,
+            Item::Memo(Memo { syntax }) => syntax,
         }
     }
 }

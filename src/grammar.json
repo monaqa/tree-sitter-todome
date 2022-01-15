@@ -411,66 +411,56 @@
       ]
     },
     "text": {
-      "type": "CHOICE",
+      "type": "SEQ",
       "members": [
         {
-          "type": "SEQ",
+          "type": "CHOICE",
           "members": [
             {
               "type": "SYMBOL",
-              "name": "_text_start"
+              "name": "tag"
             },
             {
-              "type": "REPEAT",
-              "content": {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "SYMBOL",
-                    "name": "tag"
-                  },
-                  {
-                    "type": "SYMBOL",
-                    "name": "_text_subsequent"
-                  }
-                ]
-              }
+              "type": "SYMBOL",
+              "name": "_text_start"
             }
           ]
         },
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "REPEAT1",
-              "content": {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
                 "type": "SYMBOL",
                 "name": "tag"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_text_subsequent"
               }
-            },
-            {
-              "type": "SYMBOL",
-              "name": "_text_subsequent"
-            },
-            {
-              "type": "REPEAT",
-              "content": {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "SYMBOL",
-                    "name": "tag"
-                  },
-                  {
-                    "type": "SYMBOL",
-                    "name": "_text_subsequent"
-                  }
-                ]
-              }
-            }
-          ]
+            ]
+          }
         }
       ]
+    },
+    "_text_start": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_text_start_ptn"
+      },
+      "named": true,
+      "value": "subtext"
+    },
+    "_text_subsequent": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_text_subsequent_ptn"
+      },
+      "named": true,
+      "value": "subtext"
     },
     "status_todo": {
       "type": "STRING",
@@ -536,23 +526,13 @@
       "type": "PATTERN",
       "value": "(\\s|\\\\\\r?\\n)+"
     },
-    "_text_start": {
-      "type": "ALIAS",
-      "content": {
-        "type": "PATTERN",
-        "value": "[^# +*-/=@({\\[\\t\\n][^#@\\n]*"
-      },
-      "named": false,
-      "value": "subtext"
+    "_text_start_ptn": {
+      "type": "PATTERN",
+      "value": "[^# +*-/=@({\\[\\t\\n][^#@\\n]*"
     },
-    "_text_subsequent": {
-      "type": "ALIAS",
-      "content": {
-        "type": "PATTERN",
-        "value": "[^#@\\n]+"
-      },
-      "named": false,
-      "value": "subtext"
+    "_text_subsequent_ptn": {
+      "type": "PATTERN",
+      "value": "[^#@\\n]+"
     }
   },
   "extras": [

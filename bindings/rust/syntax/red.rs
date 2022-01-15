@@ -1,3 +1,7 @@
+//! Type definition for red node (syntax node).
+//!
+//! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
+
 use std::{fmt::Display, hash::Hash, sync::Arc};
 
 use itertools::Itertools;

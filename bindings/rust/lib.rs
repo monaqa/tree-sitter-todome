@@ -4,11 +4,13 @@
 //! tree-sitter [Parser][], and then use the parser to parse some code:
 //!
 //! ```
-//! let code = "";
+//! let code = "[cat] some task";
 //! let mut parser = tree_sitter::Parser::new();
 //! parser.set_language(tree_sitter_todome::language()).expect("Error loading todome grammar");
 //! let tree = parser.parse(code, None).unwrap();
 //! ```
+//!
+//! You can construct AST via syntax module.
 //!
 //! [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
 //! [language func]: fn.language.html

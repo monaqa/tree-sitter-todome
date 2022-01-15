@@ -303,8 +303,12 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
+        {
+          "type": "subtext",
+          "named": true
+        },
         {
           "type": "tag",
           "named": true
@@ -374,7 +378,7 @@
   },
   {
     "type": "subtext",
-    "named": false
+    "named": true
   },
   {
     "type": "tag",

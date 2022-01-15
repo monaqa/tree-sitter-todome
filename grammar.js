@@ -15,8 +15,8 @@ tokens = {
     memo: _ => token(seq('#', /.*/)),
     whitespace: _ => /(\s|\\\r?\n)+/,
 
-    _text_start: _ => alias(/[^# +*-/=@({\[\t\n][^#@\n]*/, 'subtext'),
-    _text_subsequent: _ => alias(/[^#@\n]+/, 'subtext'),
+    _text_start_ptn: _ => /[^# +*-/=@({\[\t\n][^#@\n]*/,
+    _text_subsequent_ptn: _ => /[^#@\n]+/,
 }
 
 module.exports = grammar({
@@ -93,10 +93,13 @@ module.exports = grammar({
 
         category: $ => seq('[', $.category_name, ']'),
 
-        text: $ => choice(
-            seq($._text_start, repeat(choice($.tag, $._text_subsequent))),
-            seq(repeat1($.tag), $._text_subsequent, repeat(choice($.tag, $._text_subsequent)))
+        text: $ => seq(
+            choice($.tag, $._text_start),
+            repeat(choice($.tag, $._text_subsequent))
         ),
+
+        _text_start: $ => alias($._text_start_ptn, $.subtext),
+        _text_subsequent: $ => alias($._text_subsequent_ptn, $.subtext),
 
         ...tokens
     }
