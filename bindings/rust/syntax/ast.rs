@@ -44,7 +44,6 @@ register_ast_node!(SourceFile, "source_file");
 register_ast_node!(Task, "task");
 register_ast_node!(Header, "header");
 register_ast_node!(Block, "block");
-register_ast_node!(Meta, "meta");
 register_ast_node!(Status, "status");
 register_ast_node!(Priority, "priority");
 register_ast_node!(Due, "due");
@@ -70,6 +69,14 @@ pub enum Item {
     Memo(Memo),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Meta {
+    Priority(Priority),
+    Due(Due),
+    Keyval(Keyval),
+    Category(Category),
+}
+
 impl Item {
     pub fn as_task(&self) -> Option<&Task> {
         if let Self::Task(v) = self {
@@ -81,6 +88,14 @@ impl Item {
 
     pub fn as_header(&self) -> Option<&Header> {
         if let Self::Header(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_memo(&self) -> Option<&Memo> {
+        if let Self::Memo(v) = self {
             Some(v)
         } else {
             None
@@ -103,11 +118,11 @@ impl Item {
         v
     }
 
-    pub fn meta(&self) -> Option<Meta> {
+    pub fn meta(&self) -> Vec<Meta> {
         match self {
-            Item::Task(t) => t.meta(),
-            Item::Header(h) => h.meta(),
-            Item::Memo(_) => None,
+            Item::Task(t) => t.meta().collect_vec(),
+            Item::Header(h) => h.meta().collect_vec(),
+            Item::Memo(_) => vec![],
         }
     }
 
@@ -136,8 +151,8 @@ impl Item {
         Some(self.clone())
             .into_iter()
             .chain(self.ancestors())
-            .filter_map(|item| item.meta())
-            .flat_map(|meta| meta.priorities().collect_vec().into_iter().rev())
+            .flat_map(|item| item.meta())
+            .flat_map(|meta| meta.try_into_priority())
     }
 
     /// 自身にかかる dues を列挙する。
@@ -147,8 +162,8 @@ impl Item {
         Some(self.clone())
             .into_iter()
             .chain(self.ancestors())
-            .filter_map(|item| item.meta())
-            .flat_map(|meta| meta.dues().collect_vec().into_iter().rev())
+            .flat_map(|item| item.meta())
+            .flat_map(|meta| meta.try_into_due())
     }
 
     /// 自身にかかる keyvals を列挙する。
@@ -158,8 +173,8 @@ impl Item {
         Some(self.clone())
             .into_iter()
             .chain(self.ancestors())
-            .filter_map(|item| item.meta())
-            .flat_map(|meta| meta.keyvals().collect_vec().into_iter().rev())
+            .flat_map(|item| item.meta())
+            .flat_map(|meta| meta.try_into_keyval())
     }
 
     /// 自身にかかる categories を列挙する。
@@ -170,8 +185,74 @@ impl Item {
         Some(self.clone())
             .into_iter()
             .chain(self.ancestors())
-            .filter_map(|item| item.meta())
-            .flat_map(|meta| meta.categories().collect_vec().into_iter().rev())
+            .flat_map(|item| item.meta())
+            .flat_map(|meta| meta.try_into_category())
+    }
+}
+
+impl Meta {
+    pub fn as_priority(&self) -> Option<&Priority> {
+        if let Self::Priority(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_due(&self) -> Option<&Due> {
+        if let Self::Due(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_keyval(&self) -> Option<&Keyval> {
+        if let Self::Keyval(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_category(&self) -> Option<&Category> {
+        if let Self::Category(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn try_into_priority(self) -> Option<Priority> {
+        if let Self::Priority(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn try_into_due(self) -> Option<Due> {
+        if let Self::Due(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn try_into_keyval(self) -> Option<Keyval> {
+        if let Self::Keyval(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn try_into_category(self) -> Option<Category> {
+        if let Self::Category(v) = self {
+            Some(v)
+        } else {
+            None
+        }
     }
 }
 
@@ -205,6 +286,27 @@ impl AstNode for Item {
     }
 }
 
+impl AstNode for Meta {
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.green().kind().as_str() {
+            "priority" => Some(Meta::Priority(Priority::cast(syntax).unwrap())),
+            "due" => Some(Meta::Due(Due::cast(syntax).unwrap())),
+            "keyval" => Some(Meta::Keyval(Keyval::cast(syntax).unwrap())),
+            "category" => Some(Meta::Category(Category::cast(syntax).unwrap())),
+            _ => None,
+        }
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Meta::Priority(Priority { syntax }) => syntax,
+            Meta::Due(Due { syntax }) => syntax,
+            Meta::Keyval(Keyval { syntax }) => syntax,
+            Meta::Category(Category { syntax }) => syntax,
+        }
+    }
+}
+
 impl SourceFile {
     pub fn items(&self) -> impl Iterator<Item = Item> + '_ {
         self.syntax.children().filter_map(Item::cast)
@@ -233,9 +335,19 @@ impl Task {
         self.syntax.children().find_map(Status::cast)
     }
 
-    pub fn meta(&self) -> Option<Meta> {
-        self.syntax.children().find_map(Meta::cast)
+    pub fn meta(&self) -> impl Iterator<Item = Meta> + '_ {
+        self.syntax.children().filter_map(Meta::cast)
     }
+
+    // pub fn meta_items(&self) -> impl Iterator<Item = Meta> + '_ {
+    //     // self.meta()
+    //     //     .map(|meta| meta.syntax.children().filter_map(MetaItem::cast))
+    //     //     .into_iter()
+    //     //     .flatten()
+    //     self.meta()
+    //         .into_iter()
+    //         .flat_map(|meta| meta.syntax.children().filter_map(Meta::cast))
+    // }
 
     pub fn text(&self) -> Option<Text> {
         self.syntax.children().find_map(Text::cast)
@@ -255,30 +367,12 @@ impl Header {
         self.syntax.children().find_map(Status::cast)
     }
 
-    pub fn meta(&self) -> Option<Meta> {
-        self.syntax.children().find_map(Meta::cast)
+    pub fn meta(&self) -> impl Iterator<Item = Meta> + '_ {
+        self.syntax.children().filter_map(Meta::cast)
     }
 
     pub fn subitems(&self) -> impl Iterator<Item = Item> + '_ {
         self.syntax.children().filter_map(Item::cast)
-    }
-}
-
-impl Meta {
-    pub fn priorities(&self) -> impl Iterator<Item = Priority> + '_ {
-        self.syntax.children().filter_map(Priority::cast)
-    }
-
-    pub fn dues(&self) -> impl Iterator<Item = Due> + '_ {
-        self.syntax.children().filter_map(Due::cast)
-    }
-
-    pub fn keyvals(&self) -> impl Iterator<Item = Keyval> + '_ {
-        self.syntax.children().filter_map(Keyval::cast)
-    }
-
-    pub fn categories(&self) -> impl Iterator<Item = Category> + '_ {
-        self.syntax.children().filter_map(Category::cast)
     }
 }
 

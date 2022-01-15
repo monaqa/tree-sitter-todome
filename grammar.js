@@ -36,6 +36,10 @@ module.exports = grammar({
         [$._task_line, $._header_line],
     ],
 
+    supertypes: $ => [
+        $._meta,
+    ],
+
     rules: {
 
         source_file: $ => repeat(choice($.task, $.header, $._memo_line)),
@@ -51,15 +55,14 @@ module.exports = grammar({
 
         _task_line: $ => seq(
             optional(field('status', $.status)),
-            optional(field('meta', $.meta)),
+            repeat($._meta),
             field('text', $.text),
             optional($.memo),
     ),
         _header_line: $ => choice(
             seq(
                 optional(field('status', $.status)),
-                field('meta', $.meta),
-
+                repeat1($._meta),
             ),
             seq(
                 field('status', $.status),
@@ -68,8 +71,6 @@ module.exports = grammar({
         ),
 
         _memo_line: $ => seq($.memo, $._newline),
-
-        meta: $ => repeat1($._meta),
 
         _meta: $ => choice(
             field('priority', $.priority),

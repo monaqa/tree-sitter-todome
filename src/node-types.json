@@ -1,5 +1,27 @@
 [
   {
+    "type": "_meta",
+    "named": true,
+    "subtypes": [
+      {
+        "type": "category",
+        "named": true
+      },
+      {
+        "type": "due",
+        "named": true
+      },
+      {
+        "type": "keyval",
+        "named": true
+      },
+      {
+        "type": "priority",
+        "named": true
+      }
+    ]
+  },
+  {
     "type": "block",
     "named": true,
     "fields": {},
@@ -67,16 +89,6 @@
           }
         ]
       },
-      "meta": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "meta",
-            "named": true
-          }
-        ]
-      },
       "status": {
         "multiple": false,
         "required": false,
@@ -89,9 +101,13 @@
       }
     },
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "_meta",
+          "named": true
+        },
         {
           "type": "memo",
           "named": true
@@ -119,52 +135,6 @@
         "types": [
           {
             "type": "value",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
-    "type": "meta",
-    "named": true,
-    "fields": {
-      "category": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "category",
-            "named": true
-          }
-        ]
-      },
-      "due": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "due",
-            "named": true
-          }
-        ]
-      },
-      "keyval": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "keyval",
-            "named": true
-          }
-        ]
-      },
-      "priority": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "priority",
             "named": true
           }
         ]
@@ -255,16 +225,6 @@
           }
         ]
       },
-      "meta": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "meta",
-            "named": true
-          }
-        ]
-      },
       "status": {
         "multiple": false,
         "required": false,
@@ -287,9 +247,13 @@
       }
     },
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "_meta",
+          "named": true
+        },
         {
           "type": "memo",
           "named": true

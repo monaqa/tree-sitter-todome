@@ -4,8 +4,6 @@
 
 use std::{fmt::Display, hash::Hash, sync::Arc};
 
-use itertools::Itertools;
-
 use super::green::GreenNode;
 
 #[derive(Debug, Clone)]

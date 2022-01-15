@@ -26,16 +26,16 @@
 
 (
  [
-  (task   (meta priority: (priority) @type))
-  (header (meta priority: (priority) @type))
+  (task   priority: (priority) @type)
+  (header priority: (priority) @type)
   ] @text.strong
  (#match? @type "\(A\)")
  )
 
 (
  [
-  (task   (meta priority: (priority) @type))
-  (header (meta priority: (priority) @type))
+  (task   priority: (priority) @type)
+  (header priority: (priority) @type)
   ]
  (#match? @type "\(B\)")
  )
