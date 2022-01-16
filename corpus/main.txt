@@ -1,0 +1,88 @@
+==========================
+Simple task
+==========================
+
+a very simple task
+
+---
+
+(source_file
+  (whitespace)
+  (task
+    (text
+      (subtext)))
+  (whitespace))
+
+==========================
+Status
+==========================
+
+task with no status
+- done task
++ new task
+= cancelled task
+* doing task
+/ task with other states
+
+---
+
+(source_file
+  (whitespace)
+  (task
+    (text
+      (subtext)))
+  (whitespace)
+  (task
+    (status
+      (status_done))
+    (whitespace)
+    (text
+      (subtext)))
+  (whitespace)
+  (task
+    (status
+      (status_todo))
+    (whitespace)
+    (text
+      (subtext)))
+  (whitespace)
+  (task
+    (status
+      (status_cancel))
+    (whitespace)
+    (text
+      (subtext)))
+  (whitespace)
+  (task
+    (status
+      (status_doing))
+    (whitespace)
+    (text
+      (subtext)))
+  (whitespace)
+  (task
+    (status
+      (status_other))
+    (whitespace)
+    (text
+      (subtext)))
+  (whitespace))
+
+==========================
+Memo
+==========================
+
+task # with memo
+# full-line memo
+
+---
+
+(source_file
+  (whitespace)
+  (task
+    (text
+      (subtext))
+    (memo))
+  (whitespace)
+  (memo)
+  (whitespace))
