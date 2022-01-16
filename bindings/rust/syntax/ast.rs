@@ -126,6 +126,14 @@ impl Item {
         }
     }
 
+    pub fn memo(&self) -> Option<Memo> {
+        match self {
+            Item::Task(t) => t.memo(),
+            Item::Header(h) => h.memo(),
+            Item::Memo(m) => Some(m.clone()),
+        }
+    }
+
     pub fn status(&self) -> Option<Status> {
         match self {
             Item::Task(t) => t.status(),
@@ -273,6 +281,7 @@ impl AstNode for Item {
         match syntax.green().kind().as_str() {
             "task" => Some(Item::Task(Task::cast(syntax).unwrap())),
             "header" => Some(Item::Header(Header::cast(syntax).unwrap())),
+            "memo" => Some(Item::Memo(Memo::cast(syntax).unwrap())),
             _ => None,
         }
     }
@@ -339,22 +348,17 @@ impl Task {
         self.syntax.children().filter_map(Meta::cast)
     }
 
-    // pub fn meta_items(&self) -> impl Iterator<Item = Meta> + '_ {
-    //     // self.meta()
-    //     //     .map(|meta| meta.syntax.children().filter_map(MetaItem::cast))
-    //     //     .into_iter()
-    //     //     .flatten()
-    //     self.meta()
-    //         .into_iter()
-    //         .flat_map(|meta| meta.syntax.children().filter_map(Meta::cast))
-    // }
+    pub fn memo(&self) -> Option<Memo> {
+        self.syntax.children().find_map(Memo::cast)
+    }
 
     pub fn text(&self) -> Option<Text> {
         self.syntax.children().find_map(Text::cast)
     }
 
-    pub fn subitems(&self) -> impl Iterator<Item = Item> + '_ {
-        self.syntax.children().filter_map(Item::cast)
+    pub fn subitems(&self) -> Vec<Item> {
+        let block = self.syntax.children().find_map(Block::cast);
+        block.map(|b| b.items().collect_vec()).unwrap_or_default()
     }
 }
 
@@ -371,8 +375,13 @@ impl Header {
         self.syntax.children().filter_map(Meta::cast)
     }
 
-    pub fn subitems(&self) -> impl Iterator<Item = Item> + '_ {
-        self.syntax.children().filter_map(Item::cast)
+    pub fn memo(&self) -> Option<Memo> {
+        self.syntax.children().find_map(Memo::cast)
+    }
+
+    pub fn subitems(&self) -> Vec<Item> {
+        let block = self.syntax.children().find_map(Block::cast);
+        block.map(|b| b.items().collect_vec()).unwrap_or_default()
     }
 }
 
@@ -397,14 +406,45 @@ impl Status {
     }
 }
 
-impl Due {
-    pub fn try_as_date(&self) -> Option<NaiveDate> {
-        let date_str = self
-            .syntax()
+impl Priority {
+    pub fn value(&self) -> String {
+        self.syntax()
             .children()
-            .find(|n| n.green().kind().as_str() == "date_value")?
-            .text();
-        NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").ok()
+            .find(|n| n.green().kind().as_str() == "priority_inner")
+            .unwrap()
+            .text()
+    }
+}
+
+impl Keyval {
+    pub fn key(&self) -> String {
+        self.syntax()
+            .children()
+            .find(|n| n.green().kind().as_str() == "key")
+            .unwrap()
+            .text()
+    }
+
+    pub fn value(&self) -> String {
+        self.syntax()
+            .children()
+            .find(|n| n.green().kind().as_str() == "value")
+            .unwrap()
+            .text()
+    }
+}
+
+impl Due {
+    pub fn value(&self) -> String {
+        self.syntax()
+            .children()
+            .find(|n| n.green().kind().as_str() == "date_value")
+            .unwrap()
+            .text()
+    }
+
+    pub fn try_as_date(&self) -> Option<NaiveDate> {
+        NaiveDate::parse_from_str(&self.value(), "%Y-%m-%d").ok()
     }
 }
 
@@ -419,6 +459,10 @@ impl Category {
 }
 
 impl Text {
+    pub fn body(&self) -> String {
+        self.syntax.text()
+    }
+
     pub fn tags(&self) -> impl Iterator<Item = Tag> + '_ {
         self.syntax.children().filter_map(Tag::cast)
     }
@@ -427,5 +471,11 @@ impl Text {
 impl Tag {
     pub fn name(&self) -> String {
         self.syntax().text()[1..].to_string()
+    }
+}
+
+impl Memo {
+    pub fn body(&self) -> String {
+        self.syntax.text()[1..].to_string()
     }
 }
