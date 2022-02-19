@@ -74,6 +74,7 @@ Memo
 
 task # with memo
 # full-line memo
+[foo] #with memo
 
 ---
 
@@ -85,4 +86,10 @@ task # with memo
     (memo))
   (whitespace)
   (memo)
+  (whitespace)
+  (header
+    (category
+      (category_name))
+    (whitespace)
+    (memo))
   (whitespace))

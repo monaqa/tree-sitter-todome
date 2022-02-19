@@ -63,6 +63,7 @@ module.exports = grammar({
             seq(
                 optional(field('status', $.status)),
                 repeat1($._meta),
+                optional($.memo),
             ),
             seq(
                 field('status', $.status),

@@ -196,6 +196,18 @@
                 "type": "SYMBOL",
                 "name": "_meta"
               }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "memo"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             }
           ]
         },
