@@ -17,7 +17,7 @@
 //! [Parser]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Parser.html
 //! [tree-sitter]: https://tree-sitter.github.io/
 
-mod errors;
+pub mod errors;
 pub mod syntax;
 
 use tree_sitter::Language;

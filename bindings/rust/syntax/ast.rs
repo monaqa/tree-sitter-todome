@@ -4,27 +4,29 @@
 
 use chrono::NaiveDate;
 use itertools::Itertools;
-use std::{ops::Deref, sync::Arc};
+use std::ops::Deref;
 
 use crate::errors::TSTodomeError;
 
 use super::{green::GreenNode, red::SyntaxNode};
 
 pub trait AstNode: Sized {
-    fn cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError>;
+    fn try_cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError>;
+
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        AstNode::try_cast(syntax).ok()
+    }
 
     fn syntax(&self) -> &SyntaxNode;
 
     fn find_from_parent<T: Deref<Target = SyntaxNode>>(parent: &T) -> Option<Self> {
-        parent
-            .children()
-            .find_map(|child| Self::cast(child.node()).ok())
+        parent.children().find_map(|child| Self::cast(child.node()))
     }
 
     fn filter_from_parent<T: Deref<Target = SyntaxNode>>(parent: &T) -> Vec<Self> {
         parent
             .children()
-            .filter_map(|child| Self::cast(child.node()).ok())
+            .filter_map(|child| Self::cast(child.node()))
             .collect()
     }
 }
@@ -44,7 +46,7 @@ macro_rules! register_ast_node {
         }
 
         impl AstNode for $struct_name {
-            fn cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError> {
+            fn try_cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError> {
                 match syntax.green().kind().as_str() {
                     $syntax_name => Ok($struct_name(syntax)),
                     _ => Err(TSTodomeError::cast_failed($syntax_name, syntax)),
@@ -65,9 +67,9 @@ macro_rules! register_supertype {
             $($branch($child),)*
         }
         impl AstNode for $struct_name {
-            fn cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError> {
+            fn try_cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError> {
                 Err(TSTodomeError::internal_error("supertype has no variant"))
-                    $(.or_else(|_| $child::cast(syntax.clone()).map($struct_name::$branch)))*
+                    $(.or_else(|_| $child::try_cast(syntax.clone()).map($struct_name::$branch)))*
             }
 
             fn syntax(&self) -> &SyntaxNode {
@@ -145,7 +147,7 @@ impl Item {
 
     pub fn parent_item(&self) -> Option<Item> {
         let parent_item_node = self.syntax().parent()?.parent()?;
-        Item::cast(parent_item_node).ok()
+        Item::cast(parent_item_node)
     }
 
     /// 自身に近いものから順に親をさかのぼって列挙する。
@@ -318,7 +320,7 @@ impl SourceFile {
     pub fn parse(text: String) -> Result<Self, TSTodomeError> {
         let green_node = GreenNode::new_root(text)?;
         let syntax = SyntaxNode::new_root(green_node);
-        SourceFile::cast(syntax)
+        SourceFile::try_cast(syntax)
     }
 }
 
@@ -371,7 +373,7 @@ impl SourceFile {
         self.0
             .children_recursive()
             .into_iter()
-            .filter_map(|child| Item::cast(child).ok())
+            .filter_map(Item::cast)
             .collect_vec()
     }
 }
