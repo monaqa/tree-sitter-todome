@@ -70,7 +70,7 @@ module.exports = grammar({
     _meta: ($) =>
       choice(
         field("priority", $.priority),
-        field("due", $.due),
+        field("date", $.date),
         field("keyval", $.keyval),
         field("category", $.category),
       ),
@@ -86,7 +86,35 @@ module.exports = grammar({
 
     priority: ($) => seq("(", field("value", $.priority_inner), ")"),
 
-    due: ($) => seq("(", field("value", $.date_value), ")"),
+    date: ($) => seq("(", $._due_inner, ")"),
+    _due_inner: ($) =>
+      choice(
+        field("target", $.date_value),
+        seq(field("start", $.date_value), "~"),
+        seq(field("deadline", $.date_value), "!"),
+        seq(field("start", $.date_value), "~", field("target", $.date_value)),
+        seq(
+          field("start", $.date_value),
+          "~",
+          field("deadline", $.date_value),
+          "!",
+        ),
+        seq(
+          field("target", $.date_value),
+          $.whitespace,
+          field("deadline", $.date_value),
+          "!",
+        ),
+        seq(
+          field("start", $.date_value),
+          "~",
+          field("target", $.date_value),
+          $.whitespace,
+          field("deadline", $.date_value),
+          "!",
+        ),
+      ),
+
     keyval: ($) =>
       seq("{", field("key", $.key), ":", field("value", $.value), "}"),
 

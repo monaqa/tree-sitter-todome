@@ -4,7 +4,10 @@
 
 ((priority) @namespace)
 
-((due) @constant)
+(date ["(" ")"] @punctuation.bracket)
+(date start: (date_value) @property "~" @property)
+(date target: (date_value) @constant)
+(date deadline: (date_value) @constant @text.strong "!" @constant @text.strong)
 
 ((keyval) @property)
 
