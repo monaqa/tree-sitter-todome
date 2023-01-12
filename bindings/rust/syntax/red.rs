@@ -2,21 +2,12 @@
 //!
 //! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
 
-use std::{fmt::Display, hash::Hash, sync::Arc};
+use std::{hash::Hash, sync::Arc};
 
 use super::green::GreenNode;
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode(Arc<SyntaxData>);
-
-#[derive(Clone)]
-pub struct SyntaxNodeDisplay<'a>(&'a SyntaxNode);
-
-#[derive(Clone)]
-pub struct SyntaxNodeDisplayRecursive<'a>(&'a SyntaxNode);
-
-#[derive(Clone)]
-pub struct SyntaxNodeDisplayShort<'a>(&'a SyntaxNode);
 
 impl std::ops::Deref for SyntaxNode {
     type Target = Arc<SyntaxData>;
@@ -30,18 +21,37 @@ impl std::ops::Deref for SyntaxNode {
 pub struct SyntaxData {
     offset: usize,
     parent: Option<SyntaxNode>,
-    green: Arc<GreenNode>,
+    green: GreenNode,
+}
+
+/// InnerNode の子要素。
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NodeChild {
+    field: Option<&'static str>,
+    node: SyntaxNode,
+}
+
+impl NodeChild {
+    #[must_use]
+    pub fn node(&self) -> SyntaxNode {
+        self.node.clone()
+    }
+
+    #[must_use]
+    pub fn field(&self) -> Option<&'static str> {
+        self.field
+    }
 }
 
 impl SyntaxData {
     /// Get a reference to the syntax data's green.
-    pub fn green(&self) -> &GreenNode {
-        self.green.as_ref()
+    pub fn green(&self) -> GreenNode {
+        self.green.clone()
     }
 }
 
 impl SyntaxNode {
-    pub fn new_root(root: Arc<GreenNode>) -> SyntaxNode {
+    pub fn new_root(root: GreenNode) -> SyntaxNode {
         SyntaxNode(Arc::new(SyntaxData {
             offset: 0,
             parent: None,
@@ -53,23 +63,40 @@ impl SyntaxNode {
         self.parent.clone()
     }
 
-    pub fn children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
+    pub fn children(&self) -> impl Iterator<Item = NodeChild> + '_ {
         let mut offset = self.offset;
         self.green.children().iter().map(move |green_child| {
             let child_offset = offset;
-            offset += green_child.text_len();
-            SyntaxNode(Arc::new(SyntaxData {
+            offset += green_child.node().text_len();
+            let node = SyntaxNode(Arc::new(SyntaxData {
                 offset: child_offset,
                 parent: Some(self.clone()),
-                green: Arc::clone(green_child),
-            }))
+                green: green_child.node(),
+            }));
+            NodeChild {
+                field: green_child.field(),
+                node,
+            }
         })
+    }
+
+    pub fn errors(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
+        self.children()
+            .filter(|child| child.node().green().is_error())
+            .map(|child| child.node())
     }
 
     pub fn children_recursive(&self) -> Vec<SyntaxNode> {
         Some(self.clone())
             .into_iter()
-            .chain(self.children().flat_map(|c| c.children_recursive()))
+            .chain(self.children().flat_map(|c| c.node().children_recursive()))
+            .collect()
+    }
+
+    pub fn errors_recursive(&self) -> Vec<SyntaxNode> {
+        self.children_recursive()
+            .into_iter()
+            .filter(|child| child.green().is_error())
             .collect()
     }
 
@@ -90,8 +117,8 @@ impl SyntaxNode {
             return None;
         }
         for child in self.children() {
-            if child.includes(index) {
-                return Some(child);
+            if child.node().includes(index) {
+                return Some(child.node());
             }
         }
         None
@@ -122,6 +149,60 @@ impl SyntaxNode {
     pub fn text(&self) -> String {
         self.green.text()
     }
+
+    /// 短い文字列で表示する。
+    pub fn display_short(&self) -> String {
+        let mut s = String::new();
+        let (start, end) = self.range();
+        if self.green.is_node() {
+            s.push_str(&format!(
+                r#"[{}] ({}:{})"#,
+                self.green().kind().as_str(),
+                start,
+                end
+            ));
+        } else {
+            s.push_str(&format!(
+                r#"'{}' ({}:{})"#,
+                self.green().kind().as_str(),
+                start,
+                end
+            ));
+        }
+        if self.text_len() < 40 && !self.text().contains('\n') {
+            s.push_str(&format!(r#" "{}""#, self.text()));
+        }
+        s
+    }
+
+    pub fn display(&self) -> String {
+        let mut s = String::new();
+        s.push_str(&self.display_short());
+        for child in self.children() {
+            s.push_str(&format!("  {}", child.node().display_short()));
+        }
+        s
+    }
+
+    pub fn display_recursive(&self) -> String {
+        self.print_aux(0, None)
+    }
+
+    fn print_aux(&self, indent: usize, field: Option<&str>) -> String {
+        let mut s = String::new();
+        s.push_str(&" ".repeat(indent * 2));
+        if let Some(field) = field {
+            s.push_str(&format!("{field}: "))
+        } else {
+            s.push_str("- ")
+        }
+        s.push_str(&self.display_short());
+        s.push('\n');
+        for child in self.children() {
+            s.push_str(&child.node().print_aux(indent + 1, child.field()));
+        }
+        s
+    }
 }
 
 impl PartialEq for SyntaxNode {
@@ -137,102 +218,12 @@ impl Hash for SyntaxNode {
         self.0.hash(state);
     }
 }
-
-impl<'a> std::ops::Deref for SyntaxNodeDisplay<'a> {
-    type Target = &'a SyntaxNode;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'a> std::ops::Deref for SyntaxNodeDisplayRecursive<'a> {
-    type Target = &'a SyntaxNode;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'a> std::ops::Deref for SyntaxNodeDisplayShort<'a> {
-    type Target = &'a SyntaxNode;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'a> Display for SyntaxNodeDisplayShort<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (start, end) = self.range();
-        if self.green.is_node() {
-            write!(f, "[{}] ({}:{})", self.green().kind().as_str(), start, end)?;
-        } else {
-            write!(
-                f,
-                r#"<{}> ({}:{})"#,
-                self.green().kind().as_str(),
-                start,
-                end
-            )?;
-        }
-        if self.text_len() < 40 && !self.text().contains('\n') {
-            write!(f, r#" "{}""#, self.text())?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> Display for SyntaxNodeDisplay<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.display_short())?;
-        for child in self.children() {
-            writeln!(f, "  {}", child.display_short())?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> SyntaxNodeDisplayRecursive<'a> {
-    fn print_aux(&self, indent: usize) -> String {
-        let mut s = String::new();
-        s.push_str(&format!(
-            "{}{}\n",
-            " ".repeat(indent * 2),
-            self.display_short()
-        ));
-        for child in self.children() {
-            s.push_str(&child.display_recursive().print_aux(indent + 1));
-        }
-        s
-    }
-}
-
-impl<'a> Display for SyntaxNodeDisplayRecursive<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.print_aux(0))
-    }
-}
-
-impl SyntaxNode {
-    pub fn display(&self) -> SyntaxNodeDisplay<'_> {
-        SyntaxNodeDisplay(self)
-    }
-    pub fn display_short(&self) -> SyntaxNodeDisplayShort<'_> {
-        SyntaxNodeDisplayShort(self)
-    }
-    pub fn display_recursive(&self) -> SyntaxNodeDisplayRecursive<'_> {
-        SyntaxNodeDisplayRecursive(self)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn prepare_root() -> SyntaxNode {
         let green = GreenNode::new_root("(A) foo".to_string()).unwrap();
-        let green = Arc::new(green);
         SyntaxNode::new_root(green)
     }
 
@@ -251,8 +242,16 @@ mod tests {
     #[test]
     fn test_syntax_node_children() {
         let root = prepare_root();
-        let task = root.children().next().expect("expected child node 'task'.");
-        let text = task.children().nth(2).expect("expected child node 'text'.");
+        let task = root
+            .children()
+            .next()
+            .expect("expected child node 'task'.")
+            .node();
+        let text = task
+            .children()
+            .nth(2)
+            .expect("expected child node 'text'.")
+            .node();
         assert_eq!(task.offset, 0);
         assert_eq!(task.parent(), Some(root.clone()));
         assert_eq!(task.text_len(), 7);
