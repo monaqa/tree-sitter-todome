@@ -126,40 +126,24 @@ impl GreenNodeData {
         let node = cursor.node();
         let kind = SyntaxKind(node.kind());
 
-        // node.field_name_for_child は、「extra 要素を無視した」ノードの index
-        // を指定する必要があるらしい。よってちょっと処理が複雑になる。
-
-        // let children = node
-        //     .children(cursor)
-        //     .enumerate()
-        //     .map(|(idx, child)| {
-        //         let field_name = node.field_name_for_child(idx as u32);
-        //         let mut cursor = child.walk();
-        //         GreenNodeChild {
-        //             field: field_name,
-        //             node: GreenNode(Arc::new(GreenNodeData::from_cursor(text, &mut cursor))),
-        //         }
-        //     })
-        //     .collect_vec();
-        let children = {
+        let children = 'children: {
             let mut v = Vec::new();
 
-            let mut idx = 0;
-            for child in node.children(cursor) {
-                let field_name = if !child.is_extra() {
-                    let field_name = node.field_name_for_child(idx);
-                    idx += 1;
-                    field_name
-                } else {
-                    None
-                };
-                let mut cursor = child.walk();
+            if !cursor.goto_first_child() {
+                break 'children v;
+            }
+            v.push(GreenNodeChild {
+                field: cursor.field_name(),
+                node: GreenNode(Arc::new(GreenNodeData::from_cursor(text, cursor))),
+            });
+            while cursor.goto_next_sibling() {
                 v.push(GreenNodeChild {
-                    field: field_name,
-                    node: GreenNode(Arc::new(GreenNodeData::from_cursor(text, &mut cursor))),
+                    field: cursor.field_name(),
+                    node: GreenNode(Arc::new(GreenNodeData::from_cursor(text, cursor))),
                 });
             }
 
+            cursor.goto_parent();
             v
         };
 
