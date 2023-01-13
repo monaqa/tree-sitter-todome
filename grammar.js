@@ -86,33 +86,33 @@ module.exports = grammar({
 
     priority: ($) => seq("(", field("value", $.priority_inner), ")"),
 
-    date: ($) => seq("(", $._due_inner, ")"),
-    _due_inner: ($) =>
+    date: ($) => seq("(", $._date_inner, ")"),
+    _date_inner: ($) =>
       choice(
-        field("target", $.date_value),
-        seq(field("start", $.date_value), "~"),
-        seq(field("deadline", $.date_value), "!"),
+        seq(
+          field("start", $.date_value),
+          "~",
+          field("target", $.date_value),
+          $.whitespace,
+          field("deadline", $.date_value),
+          "!",
+        ),
+        seq(
+          field("start", $.date_value),
+          "~",
+          field("deadline", $.date_value),
+          "!",
+        ),
         seq(field("start", $.date_value), "~", field("target", $.date_value)),
         seq(
-          field("start", $.date_value),
-          "~",
-          field("deadline", $.date_value),
-          "!",
-        ),
-        seq(
           field("target", $.date_value),
           $.whitespace,
           field("deadline", $.date_value),
           "!",
         ),
-        seq(
-          field("start", $.date_value),
-          "~",
-          field("target", $.date_value),
-          $.whitespace,
-          field("deadline", $.date_value),
-          "!",
-        ),
+        seq(field("start", $.date_value), "~"),
+        seq(field("deadline", $.date_value), "!"),
+        field("target", $.date_value),
       ),
 
     keyval: ($) =>

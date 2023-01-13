@@ -343,7 +343,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "_due_inner"
+          "name": "_date_inner"
         },
         {
           "type": "STRING",
@@ -351,9 +351,167 @@
         }
       ]
     },
-    "_due_inner": {
+    "_date_inner": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "start",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "~"
+            },
+            {
+              "type": "FIELD",
+              "name": "target",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "SYMBOL",
+              "name": "whitespace"
+            },
+            {
+              "type": "FIELD",
+              "name": "deadline",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "!"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "start",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "~"
+            },
+            {
+              "type": "FIELD",
+              "name": "deadline",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "!"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "start",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "~"
+            },
+            {
+              "type": "FIELD",
+              "name": "target",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "target",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "SYMBOL",
+              "name": "whitespace"
+            },
+            {
+              "type": "FIELD",
+              "name": "deadline",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "!"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "start",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "~"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "deadline",
+              "content": {
+                "type": "SYMBOL",
+                "name": "date_value"
+              }
+            },
+            {
+              "type": "STRING",
+              "value": "!"
+            }
+          ]
+        },
         {
           "type": "FIELD",
           "name": "target",
@@ -361,164 +519,6 @@
             "type": "SYMBOL",
             "name": "date_value"
           }
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "start",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "~"
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "deadline",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "!"
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "start",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "~"
-            },
-            {
-              "type": "FIELD",
-              "name": "target",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "start",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "~"
-            },
-            {
-              "type": "FIELD",
-              "name": "deadline",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "!"
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "target",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "SYMBOL",
-              "name": "whitespace"
-            },
-            {
-              "type": "FIELD",
-              "name": "deadline",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "!"
-            }
-          ]
-        },
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "start",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "~"
-            },
-            {
-              "type": "FIELD",
-              "name": "target",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "SYMBOL",
-              "name": "whitespace"
-            },
-            {
-              "type": "FIELD",
-              "name": "deadline",
-              "content": {
-                "type": "SYMBOL",
-                "name": "date_value"
-              }
-            },
-            {
-              "type": "STRING",
-              "value": "!"
-            }
-          ]
         }
       ]
     },
