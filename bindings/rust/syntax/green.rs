@@ -11,16 +11,14 @@ use crate::errors::TSTodomeError;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GreenNode(Arc<GreenNodeData>);
 
-impl Deref for GreenNode {
-    type Target = Arc<GreenNodeData>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl GreenNode {
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GreenNodeData {
+pub(crate) enum GreenNodeData {
     Inner(InnerNode),
     Token(Token),
 }
@@ -36,7 +34,7 @@ impl SyntaxKind {
 
 /// 子要素を持つ GreenNode。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InnerNode {
+pub(crate) struct InnerNode {
     kind: SyntaxKind,
     is_error: bool,
     text_len: usize,
@@ -87,7 +85,7 @@ impl InnerNode {
 
 /// トークン。子要素を持たない GreenNode のこと。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Token {
+pub(crate) struct Token {
     kind: SyntaxKind,
     is_error: bool,
     text: String,
@@ -101,7 +99,7 @@ impl Token {
 }
 
 impl GreenNode {
-    pub fn new(data: GreenNodeData) -> GreenNode {
+    pub(crate) fn new(data: GreenNodeData) -> GreenNode {
         GreenNode(Arc::new(data))
     }
 
@@ -118,6 +116,34 @@ impl GreenNode {
             &text,
             &mut cursor,
         )))
+    }
+
+    pub fn text(&self) -> String {
+        self.0.text()
+    }
+
+    pub fn kind(&self) -> SyntaxKind {
+        self.0.kind()
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.0.is_error()
+    }
+
+    pub fn children(&self) -> &[GreenNodeChild] {
+        self.0.children()
+    }
+
+    pub fn text_len(&self) -> usize {
+        self.0.text_len()
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.0.is_node()
+    }
+
+    pub fn is_token(&self) -> bool {
+        self.0.is_token()
     }
 }
 
@@ -166,30 +192,30 @@ impl GreenNodeData {
         }
     }
 
-    pub fn text(&self) -> String {
+    fn text(&self) -> String {
         match self {
             GreenNodeData::Inner(InnerNode { children, .. }) => {
-                children.iter().map(|child| child.node.text()).join("")
+                children.iter().map(|child| child.node.0.text()).join("")
             }
             GreenNodeData::Token(Token { text, .. }) => text.clone(),
         }
     }
 
-    pub fn kind(&self) -> SyntaxKind {
+    fn kind(&self) -> SyntaxKind {
         match self {
             GreenNodeData::Inner(InnerNode { kind, .. }) => *kind,
             GreenNodeData::Token(Token { kind, .. }) => *kind,
         }
     }
 
-    pub fn is_error(&self) -> bool {
+    fn is_error(&self) -> bool {
         match self {
             GreenNodeData::Inner(InnerNode { is_error, .. }) => *is_error,
             GreenNodeData::Token(Token { is_error, .. }) => *is_error,
         }
     }
 
-    pub fn as_node(&self) -> Option<&InnerNode> {
+    fn as_node(&self) -> Option<&InnerNode> {
         if let Self::Inner(v) = self {
             Some(v)
         } else {
@@ -197,7 +223,7 @@ impl GreenNodeData {
         }
     }
 
-    pub fn as_token(&self) -> Option<&Token> {
+    fn as_token(&self) -> Option<&Token> {
         if let Self::Token(v) = self {
             Some(v)
         } else {
@@ -205,14 +231,14 @@ impl GreenNodeData {
         }
     }
 
-    pub fn children(&self) -> &[GreenNodeChild] {
+    fn children(&self) -> &[GreenNodeChild] {
         match self {
             GreenNodeData::Inner(InnerNode { children, .. }) => children.deref(),
             _ => &[],
         }
     }
 
-    pub fn text_len(&self) -> usize {
+    fn text_len(&self) -> usize {
         match self {
             GreenNodeData::Inner(InnerNode { text_len, .. }) => *text_len,
             GreenNodeData::Token(Token { text, .. }) => text.len(),
@@ -222,14 +248,14 @@ impl GreenNodeData {
     /// Returns `true` if the green node is [`Branch`].
     ///
     /// [`Branch`]: GreenNode::Branch
-    pub fn is_node(&self) -> bool {
+    fn is_node(&self) -> bool {
         matches!(self, Self::Inner(..))
     }
 
     /// Returns `true` if the green node is [`Token`].
     ///
     /// [`Token`]: GreenNode::Token
-    pub fn is_token(&self) -> bool {
+    fn is_token(&self) -> bool {
         matches!(self, Self::Token(..))
     }
 }
@@ -242,19 +268,19 @@ mod tests {
     #[test]
     fn test_green_node() {
         let root = GreenNode::new_root("foo".to_string()).unwrap();
-        let source_file = root.as_node().unwrap();
+        let source_file = root.0.as_node().unwrap();
         assert_eq!(source_file.text_len, 3);
         assert_eq!(source_file.kind, SyntaxKind("source_file"));
         let task = source_file.children().get(0).unwrap().node();
-        let task = task.as_node().unwrap();
+        let task = task.0.as_node().unwrap();
         assert_eq!(task.text_len, 3);
         assert_eq!(task.kind, SyntaxKind("task"));
         let text = task.children().get(0).unwrap().node();
-        let text = text.as_node().unwrap();
+        let text = text.0.as_node().unwrap();
         assert_eq!(text.text_len, 3);
         assert_eq!(text.kind, SyntaxKind("text"));
         let subtext = text.children().get(0).unwrap().node();
-        let subtext = subtext.as_token().unwrap();
+        let subtext = subtext.0.as_token().unwrap();
         assert_eq!(subtext.text, "foo".to_owned());
         assert_eq!(subtext.kind, SyntaxKind("subtext"));
     }

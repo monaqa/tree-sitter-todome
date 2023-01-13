@@ -9,26 +9,26 @@ use super::green::GreenNode;
 #[derive(Debug, Clone)]
 pub struct SyntaxNode(Arc<SyntaxData>);
 
-impl std::ops::Deref for SyntaxNode {
-    type Target = Arc<SyntaxData>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct SyntaxData {
-    offset: usize,
-    parent: Option<SyntaxNode>,
-    green: GreenNode,
-}
+// impl std::ops::Deref for SyntaxNode {
+//     type Target = Arc<SyntaxData>;
+//
+//     fn deref(&self) -> &Self::Target {
+//         &self.0
+//     }
+// }
 
 /// InnerNode の子要素。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NodeChild {
     field: Option<&'static str>,
     node: SyntaxNode,
+}
+
+#[derive(Debug, Clone, Hash)]
+pub(crate) struct SyntaxData {
+    offset: usize,
+    parent: Option<SyntaxNode>,
+    green: GreenNode,
 }
 
 impl NodeChild {
@@ -60,12 +60,20 @@ impl SyntaxNode {
     }
 
     pub fn parent(&self) -> Option<SyntaxNode> {
-        self.parent.clone()
+        self.0.parent.clone()
+    }
+
+    pub fn offset(&self) -> usize {
+        self.0.offset
+    }
+
+    pub fn green(&self) -> GreenNode {
+        self.0.green.clone()
     }
 
     pub fn children(&self) -> impl Iterator<Item = NodeChild> + '_ {
-        let mut offset = self.offset;
-        self.green.children().iter().map(move |green_child| {
+        let mut offset = self.0.offset;
+        self.0.green.children().iter().map(move |green_child| {
             let child_offset = offset;
             offset += green_child.node().text_len();
             let node = SyntaxNode(Arc::new(SyntaxData {
@@ -82,7 +90,7 @@ impl SyntaxNode {
 
     pub fn errors(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
         self.children()
-            .filter(|child| child.node().green().is_error())
+            .filter(|child| child.node().0.green().is_error())
             .map(|child| child.node())
     }
 
@@ -96,20 +104,20 @@ impl SyntaxNode {
     pub fn errors_recursive(&self) -> Vec<SyntaxNode> {
         self.children_recursive()
             .into_iter()
-            .filter(|child| child.green().is_error())
+            .filter(|child| child.0.green().is_error())
             .collect()
     }
 
     pub fn text_len(&self) -> usize {
-        self.green.text_len()
+        self.0.green.text_len()
     }
 
     pub fn range(&self) -> (usize, usize) {
-        (self.offset, self.offset + self.text_len())
+        (self.0.offset, self.0.offset + self.text_len())
     }
 
     pub fn includes(&self, index: usize) -> bool {
-        index >= self.offset && index < self.offset + self.text_len()
+        index >= self.0.offset && index < self.0.offset + self.text_len()
     }
 
     fn dig_child(&self, index: usize) -> Option<SyntaxNode> {
@@ -147,24 +155,24 @@ impl SyntaxNode {
 
     /// そのノードが表すテキストを取得する。
     pub fn text(&self) -> String {
-        self.green.text()
+        self.0.green.text()
     }
 
     /// 短い文字列で表示する。
     pub fn display_short(&self) -> String {
         let mut s = String::new();
         let (start, end) = self.range();
-        if self.green.is_node() {
+        if self.0.green.is_node() {
             s.push_str(&format!(
                 r#"[{}] ({}:{})"#,
-                self.green().kind().as_str(),
+                self.0.green().kind().as_str(),
                 start,
                 end
             ));
         } else {
             s.push_str(&format!(
                 r#"'{}' ({}:{})"#,
-                self.green().kind().as_str(),
+                self.0.green().kind().as_str(),
                 start,
                 end
             ));
@@ -207,7 +215,7 @@ impl SyntaxNode {
 
 impl PartialEq for SyntaxNode {
     fn eq(&self, other: &Self) -> bool {
-        self.offset == other.offset && Arc::ptr_eq(&self.green, &other.green)
+        self.0.offset == other.0.offset && self.0.green().ptr_eq(&other.0.green())
     }
 }
 
@@ -230,8 +238,8 @@ mod tests {
     #[test]
     fn test_syntax_node() {
         let root = prepare_root();
-        assert_eq!(root.offset, 0);
-        assert_eq!(root.parent, None);
+        assert_eq!(root.0.offset, 0);
+        assert_eq!(root.0.parent, None);
         assert_eq!(root.text_len(), 7);
         assert_eq!(root.text(), "(A) foo".to_owned());
         assert!(root.includes(3));
@@ -252,11 +260,11 @@ mod tests {
             .nth(2)
             .expect("expected child node 'text'.")
             .node();
-        assert_eq!(task.offset, 0);
+        assert_eq!(task.0.offset, 0);
         assert_eq!(task.parent(), Some(root.clone()));
         assert_eq!(task.text_len(), 7);
         assert_eq!(task.text(), "(A) foo".to_owned());
-        assert_eq!(text.offset, 4);
+        assert_eq!(text.0.offset, 4);
         assert_eq!(text.parent(), Some(task));
         assert_eq!(text.text_len(), 3);
         assert_eq!(text.text(), "foo".to_owned());
