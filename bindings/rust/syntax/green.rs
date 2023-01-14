@@ -3,33 +3,32 @@
 //! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
 
 use itertools::Itertools;
-use std::{ops::Deref, sync::Arc};
+use std::{borrow::Cow, ops::Deref, sync::Arc};
 use tree_sitter::{Parser, TreeCursor};
 
 use crate::errors::TSTodomeError;
 
+/// Green Node: a purely-functional tree with arbitrary arity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GreenNode(Arc<GreenNodeData>);
 
-impl GreenNode {
-    pub fn ptr_eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
-    }
+/// 構文要素の種類。 tree-sitter のノード名に対応。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SyntaxKind(&'static str);
+
+/// InnerNode の子要素。
+/// GreenNode::children() の返り値の Vec の要素。
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GreenNodeChild {
+    pub field: Option<&'static str>,
+    pub node: GreenNode,
 }
 
+/// GreenNode の中身。子要素を持つ Inner node か、子要素を持たない token のいずれか。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum GreenNodeData {
     Inner(InnerNode),
     Token(Token),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SyntaxKind(&'static str);
-
-impl SyntaxKind {
-    pub fn as_str(&self) -> &'static str {
-        self.0
-    }
 }
 
 /// 子要素を持つ GreenNode。
@@ -41,49 +40,7 @@ pub(crate) struct InnerNode {
     children: Vec<GreenNodeChild>,
 }
 
-/// InnerNode の子要素。
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GreenNodeChild {
-    field: Option<&'static str>,
-    node: GreenNode,
-}
-
-impl GreenNodeChild {
-    #[must_use]
-    pub fn node(&self) -> GreenNode {
-        self.node.clone()
-    }
-
-    #[must_use]
-    pub fn field(&self) -> Option<&'static str> {
-        self.field
-    }
-}
-
-impl InnerNode {
-    /// Get a reference to the node's children.
-    pub fn children(&self) -> &[GreenNodeChild] {
-        self.children.as_ref()
-    }
-
-    pub fn find_children_with_field(&self, field_name: &str) -> Vec<GreenNode> {
-        self.children
-            .iter()
-            .filter(|child| child.field == Some(field_name))
-            .map(|child| child.node.clone())
-            .collect_vec()
-    }
-
-    pub fn get_children_with_field(&self) -> Vec<GreenNode> {
-        self.children
-            .iter()
-            .filter(|child| child.field.is_some())
-            .map(|child| child.node.clone())
-            .collect_vec()
-    }
-}
-
-/// トークン。子要素を持たない GreenNode のこと。
+/// トークン。子要素を持たない GreenNode。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Token {
     kind: SyntaxKind,
@@ -91,16 +48,13 @@ pub(crate) struct Token {
     text: String,
 }
 
-impl Token {
-    /// Get a reference to the token's text.
-    pub fn text(&self) -> &str {
-        self.text.as_ref()
-    }
-}
-
 impl GreenNode {
     pub(crate) fn new(data: GreenNodeData) -> GreenNode {
         GreenNode(Arc::new(data))
+    }
+
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
     }
 
     pub fn new_root(text: String) -> Result<GreenNode, TSTodomeError> {
@@ -118,7 +72,7 @@ impl GreenNode {
         )))
     }
 
-    pub fn text(&self) -> String {
+    pub fn text(&self) -> Cow<str> {
         self.0.text()
     }
 
@@ -144,6 +98,22 @@ impl GreenNode {
 
     pub fn is_token(&self) -> bool {
         self.0.is_token()
+    }
+}
+
+impl SyntaxKind {
+    pub fn as_str(&self) -> &'static str {
+        self.0
+    }
+}
+
+impl GreenNodeChild {
+    pub fn node(&self) -> GreenNode {
+        self.node.clone()
+    }
+
+    pub fn field(&self) -> Option<&'static str> {
+        self.field
     }
 }
 
@@ -192,12 +162,13 @@ impl GreenNodeData {
         }
     }
 
-    fn text(&self) -> String {
+    fn text(&self) -> Cow<str> {
         match self {
             GreenNodeData::Inner(InnerNode { children, .. }) => {
-                children.iter().map(|child| child.node.0.text()).join("")
+                let s = children.iter().map(|child| child.node.0.text()).join("");
+                Cow::Owned(s)
             }
-            GreenNodeData::Token(Token { text, .. }) => text.clone(),
+            GreenNodeData::Token(Token { text, .. }) => Cow::Borrowed(text),
         }
     }
 
@@ -212,22 +183,6 @@ impl GreenNodeData {
         match self {
             GreenNodeData::Inner(InnerNode { is_error, .. }) => *is_error,
             GreenNodeData::Token(Token { is_error, .. }) => *is_error,
-        }
-    }
-
-    fn as_node(&self) -> Option<&InnerNode> {
-        if let Self::Inner(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    fn as_token(&self) -> Option<&Token> {
-        if let Self::Token(v) = self {
-            Some(v)
-        } else {
-            None
         }
     }
 
@@ -267,21 +222,32 @@ mod tests {
 
     #[test]
     fn test_green_node() {
-        let root = GreenNode::new_root("foo".to_string()).unwrap();
-        let source_file = root.0.as_node().unwrap();
-        assert_eq!(source_file.text_len, 3);
-        assert_eq!(source_file.kind, SyntaxKind("source_file"));
-        let task = source_file.children().get(0).unwrap().node();
-        let task = task.0.as_node().unwrap();
-        assert_eq!(task.text_len, 3);
-        assert_eq!(task.kind, SyntaxKind("task"));
-        let text = task.children().get(0).unwrap().node();
-        let text = text.0.as_node().unwrap();
-        assert_eq!(text.text_len, 3);
-        assert_eq!(text.kind, SyntaxKind("text"));
-        let subtext = text.children().get(0).unwrap().node();
-        let subtext = subtext.0.as_token().unwrap();
-        assert_eq!(subtext.text, "foo".to_owned());
-        assert_eq!(subtext.kind, SyntaxKind("subtext"));
+        let source_file = GreenNode::new_root("(A) foo".to_string()).unwrap();
+        assert_eq!(source_file.kind().as_str(), "source_file");
+        assert_eq!(source_file.text_len(), 7);
+
+        let GreenNodeChild { field, node: task } = source_file.children().get(0).unwrap();
+        assert_eq!(field, &None);
+        assert_eq!(task.kind().as_str(), "task");
+        assert_eq!(task.text(), "(A) foo");
+        assert_eq!(task.text_len(), 7);
+
+        let GreenNodeChild {
+            field,
+            node: priority,
+        } = task.children().get(0).unwrap();
+        assert_eq!(field, &Some("priority"));
+        assert_eq!(priority.kind().as_str(), "priority");
+        assert_eq!(priority.text(), "(A)");
+        assert_eq!(priority.text_len(), 3);
+
+        let GreenNodeChild {
+            field,
+            node: priority,
+        } = priority.children().get(1).unwrap();
+        assert_eq!(field, &Some("value"));
+        assert_eq!(priority.kind().as_str(), "priority_inner");
+        assert_eq!(priority.text(), "A");
+        assert_eq!(priority.text_len(), 1);
     }
 }

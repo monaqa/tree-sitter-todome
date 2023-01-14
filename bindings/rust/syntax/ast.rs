@@ -10,6 +10,17 @@ use crate::errors::TSTodomeError;
 
 use super::{green::GreenNode, red::SyntaxNode};
 
+fn find_from_parent<T: AstNode>(parent: &SyntaxNode) -> Option<T> {
+    parent.children().find_map(|child| T::cast(child.node))
+}
+
+fn filter_from_parent<T: AstNode>(parent: &SyntaxNode) -> Vec<T> {
+    parent
+        .children()
+        .filter_map(|child| T::cast(child.node))
+        .collect()
+}
+
 pub trait AstNode: Sized {
     fn try_cast(syntax: SyntaxNode) -> Result<Self, TSTodomeError>;
 
@@ -18,17 +29,6 @@ pub trait AstNode: Sized {
     }
 
     fn syntax(&self) -> &SyntaxNode;
-
-    fn find_from_parent<T: Deref<Target = SyntaxNode>>(parent: &T) -> Option<Self> {
-        parent.children().find_map(|child| Self::cast(child.node()))
-    }
-
-    fn filter_from_parent<T: Deref<Target = SyntaxNode>>(parent: &T) -> Vec<Self> {
-        parent
-            .children()
-            .filter_map(|child| Self::cast(child.node()))
-            .collect()
-    }
 }
 
 macro_rules! register_ast_node {
@@ -187,7 +187,7 @@ impl Item {
 
     /// 自身にかかる status を列挙する。
     /// 最も後に出たものから順番に出力される。
-    /// したがって `.next()` で「現在有効な」 priority を取得できる。
+    /// したがって `.next()` で「現在有効な」 status を取得できる。
     pub fn scoped_statuses(&self) -> Vec<Status> {
         Some(self.clone())
             .into_iter()
@@ -208,21 +208,19 @@ impl Item {
             .collect_vec()
     }
 
-    /// 自身にかかる dues を列挙する。
+    /// 自身にかかる dates を列挙する。
     /// 最も後に出たものから順番に出力される。
-    /// したがって `.next()` で「現在有効な」 priority を取得できる。
-    pub fn scoped_dues(&self) -> Vec<Date> {
+    pub fn scoped_dates(&self) -> Vec<Date> {
         Some(self.clone())
             .into_iter()
             .chain(self.ancestors())
             .flat_map(|item| item.meta())
-            .flat_map(|meta| meta.try_into_due())
+            .flat_map(|meta| meta.try_into_date())
             .collect_vec()
     }
 
     /// 自身にかかる keyvals を列挙する。
     /// 最も後に出たものから順番に出力される。
-    /// したがって `.next()` で「現在有効な」 priority を取得できる。
     pub fn scoped_keyvals(&self) -> Vec<Keyval> {
         Some(self.clone())
             .into_iter()
@@ -255,7 +253,7 @@ impl Meta {
         }
     }
 
-    pub fn as_due(&self) -> Option<&Date> {
+    pub fn as_date(&self) -> Option<&Date> {
         if let Self::Date(v) = self {
             Some(v)
         } else {
@@ -287,7 +285,7 @@ impl Meta {
         }
     }
 
-    pub fn try_into_due(self) -> Option<Date> {
+    pub fn try_into_date(self) -> Option<Date> {
         if let Self::Date(v) = self {
             Some(v)
         } else {
@@ -324,49 +322,9 @@ impl SourceFile {
     }
 }
 
-// impl AstNode for Item {
-//     fn cast(syntax: SyntaxNode) -> Option<Self> {
-//         match syntax.green().kind().as_str() {
-//             "task" => Some(Item::Task(Task::cast(syntax).unwrap())),
-//             "header" => Some(Item::Header(Header::cast(syntax).unwrap())),
-//             "memo" => Some(Item::Memo(Memo::cast(syntax).unwrap())),
-//             _ => None,
-//         }
-//     }
-//
-//     fn syntax(&self) -> &SyntaxNode {
-//         match self {
-//             Item::Task(Task { syntax }) => syntax,
-//             Item::Header(Header { syntax }) => syntax,
-//             Item::Memo(Memo { syntax }) => syntax,
-//         }
-//     }
-// }
-//
-// impl AstNode for Meta {
-//     fn cast(syntax: SyntaxNode) -> Option<Self> {
-//         match syntax.green().kind().as_str() {
-//             "priority" => Some(Meta::Priority(Priority::cast(syntax).unwrap())),
-//             "due" => Some(Meta::Due(Due::cast(syntax).unwrap())),
-//             "keyval" => Some(Meta::Keyval(Keyval::cast(syntax).unwrap())),
-//             "category" => Some(Meta::Category(Category::cast(syntax).unwrap())),
-//             _ => None,
-//         }
-//     }
-//
-//     fn syntax(&self) -> &SyntaxNode {
-//         match self {
-//             Meta::Priority(Priority { syntax }) => syntax,
-//             Meta::Due(Due { syntax }) => syntax,
-//             Meta::Keyval(Keyval { syntax }) => syntax,
-//             Meta::Category(Category { syntax }) => syntax,
-//         }
-//     }
-// }
-
 impl SourceFile {
     pub fn items(&self) -> Vec<Item> {
-        Item::filter_from_parent(self)
+        filter_from_parent(self)
     }
 
     pub fn items_nested(&self) -> Vec<Item> {
@@ -380,7 +338,7 @@ impl SourceFile {
 
 impl Block {
     pub fn items(&self) -> Vec<Item> {
-        Item::filter_from_parent(self)
+        filter_from_parent(self)
     }
 }
 
@@ -390,23 +348,23 @@ impl Task {
     }
 
     pub fn status(&self) -> Option<Status> {
-        Status::find_from_parent(self)
+        find_from_parent(self)
     }
 
     pub fn meta(&self) -> Vec<Meta> {
-        Meta::filter_from_parent(self)
+        filter_from_parent(self)
     }
 
     pub fn memo(&self) -> Option<Memo> {
-        Memo::find_from_parent(self)
+        find_from_parent(self)
     }
 
     pub fn text(&self) -> Option<Text> {
-        Text::find_from_parent(self)
+        find_from_parent(self)
     }
 
     pub fn subitems(&self) -> Vec<Item> {
-        let block = Block::find_from_parent(self);
+        let block: Option<Block> = find_from_parent(self);
         block.map(|b| b.items()).unwrap_or_default()
     }
 }
@@ -417,26 +375,26 @@ impl Header {
     }
 
     pub fn status(&self) -> Option<Status> {
-        Status::find_from_parent(self)
+        find_from_parent(self)
     }
 
     pub fn meta(&self) -> Vec<Meta> {
-        Meta::filter_from_parent(self)
+        filter_from_parent(self)
     }
 
     pub fn memo(&self) -> Option<Memo> {
-        Memo::find_from_parent(self)
+        find_from_parent(self)
     }
 
     pub fn subitems(&self) -> Vec<Item> {
-        let block = Block::find_from_parent(self);
+        let block: Option<Block> = find_from_parent(self);
         block.map(|b| b.items()).unwrap_or_default()
     }
 }
 
 impl Status {
     pub fn kind(&self) -> StatusKind {
-        match self.0.text().as_str() {
+        match self.0.text().as_ref() {
             "+" => StatusKind::Todo,
             "*" => StatusKind::Doing,
             "-" => StatusKind::Done,
@@ -463,6 +421,7 @@ impl Priority {
             .find(|n| n.green().kind().as_str() == "priority_inner")
             .unwrap()
             .text()
+            .into_owned()
     }
 }
 
@@ -474,6 +433,7 @@ impl Keyval {
             .find(|n| n.green().kind().as_str() == "key")
             .unwrap()
             .text()
+            .into_owned()
     }
 
     pub fn value(&self) -> String {
@@ -483,6 +443,7 @@ impl Keyval {
             .find(|n| n.green().kind().as_str() == "value")
             .unwrap()
             .text()
+            .into_owned()
     }
 }
 
@@ -517,16 +478,17 @@ impl Category {
             .unwrap()
             .node()
             .text()
+            .into_owned()
     }
 }
 
 impl Text {
     pub fn body(&self) -> String {
-        self.0.text()
+        self.0.text().into_owned()
     }
 
     pub fn tags(&self) -> Vec<Tag> {
-        Tag::filter_from_parent(self)
+        filter_from_parent(self)
     }
 }
 
@@ -539,5 +501,70 @@ impl Tag {
 impl Memo {
     pub fn body(&self) -> String {
         self.syntax().text()[1..].to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+
+    #[test]
+    fn test_normal_todome() {
+        let text = indoc! { r#"
+                - テストタスク
+                	(2022-12-14~2022-12-28 2023-01-10!) テストサブタスク
+                [test category]
+                	(A) 優先度付き
+            "#
+        };
+
+        let source_file = SourceFile::parse(text.to_owned()).expect("parse failed.");
+        let items = source_file.items();
+
+        {
+            let item0 = items.get(0).expect("expects item.");
+            assert_eq!(
+                item0.syntax().text(),
+                indoc! { "
+                    - テストタスク
+                    	(2022-12-14~2022-12-28 2023-01-10!) テストサブタスク"
+                }
+            );
+
+            let task = item0.as_task().expect("expects task.");
+            let status = task.status().expect("expects status.");
+            let text = task.text().expect("expects text.");
+            let subitems = task.subitems();
+            assert_eq!(status.kind(), StatusKind::Done);
+            assert_eq!(text.body(), "テストタスク");
+            assert_eq!(subitems.len(), 1);
+
+            {
+                let item0 = subitems.get(0).expect("expects item.");
+                assert_eq!(
+                    item0.syntax().text(),
+                    "(2022-12-14~2022-12-28 2023-01-10!) テストサブタスク"
+                );
+
+                let task = item0.as_task().expect("expects task.");
+                let meta = task.meta();
+                let date = meta
+                    .get(0)
+                    .expect("expect meta.")
+                    .as_date()
+                    .expect("expect date.");
+                assert_eq!(date.start(), Some(NaiveDate::from_ymd(2022, 12, 14)));
+            }
+        }
+
+        let item1 = items.get(1).expect("expects item.");
+        assert_eq!(
+            item1.syntax().text(),
+            indoc! {"
+                [test category]
+                	(A) 優先度付き"
+            }
+        );
     }
 }

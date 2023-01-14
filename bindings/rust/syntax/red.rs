@@ -2,7 +2,7 @@
 //!
 //! See <https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/syntax.md>
 
-use std::{hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use super::green::GreenNode;
 
@@ -20,8 +20,8 @@ pub struct SyntaxNode(Arc<SyntaxData>);
 /// InnerNode の子要素。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NodeChild {
-    field: Option<&'static str>,
-    node: SyntaxNode,
+    pub field: Option<&'static str>,
+    pub node: SyntaxNode,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -32,12 +32,10 @@ pub(crate) struct SyntaxData {
 }
 
 impl NodeChild {
-    #[must_use]
     pub fn node(&self) -> SyntaxNode {
         self.node.clone()
     }
 
-    #[must_use]
     pub fn field(&self) -> Option<&'static str> {
         self.field
     }
@@ -154,7 +152,7 @@ impl SyntaxNode {
     // }
 
     /// そのノードが表すテキストを取得する。
-    pub fn text(&self) -> String {
+    pub fn text(&self) -> Cow<str> {
         self.0.green.text()
     }
 
@@ -238,8 +236,8 @@ mod tests {
     #[test]
     fn test_syntax_node() {
         let root = prepare_root();
-        assert_eq!(root.0.offset, 0);
-        assert_eq!(root.0.parent, None);
+        assert_eq!(root.offset(), 0);
+        assert_eq!(root.parent(), None);
         assert_eq!(root.text_len(), 7);
         assert_eq!(root.text(), "(A) foo".to_owned());
         assert!(root.includes(3));
@@ -260,19 +258,13 @@ mod tests {
             .nth(2)
             .expect("expected child node 'text'.")
             .node();
-        assert_eq!(task.0.offset, 0);
-        assert_eq!(task.parent(), Some(root.clone()));
+        assert_eq!(task.offset(), 0);
+        assert_eq!(task.parent(), Some(root));
         assert_eq!(task.text_len(), 7);
         assert_eq!(task.text(), "(A) foo".to_owned());
-        assert_eq!(text.0.offset, 4);
+        assert_eq!(text.offset(), 4);
         assert_eq!(text.parent(), Some(task));
         assert_eq!(text.text_len(), 3);
         assert_eq!(text.text(), "foo".to_owned());
-
-        // for n in root.dig(2) {
-        //     println!("{}", n.display());
-        // }
-
-        println!("{}", root.display_recursive());
     }
 }
